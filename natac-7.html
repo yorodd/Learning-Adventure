@@ -1,0 +1,3167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Natac">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#06080f">
+<title>Natac</title>
+<script>
+// Generate app icon for apple-touch-icon only (NOT a PWA manifest blob — those
+// don't work on Android Chrome and cause a broken install prompt to appear)
+window.addEventListener('load',()=>{
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="42" fill="#06080f"/>
+  <circle cx="30" cy="30" r="1.5" fill="white" opacity=".8"/>
+  <circle cx="160" cy="25" r="1" fill="white" opacity=".6"/>
+  <circle cx="170" cy="80" r="1.5" fill="white" opacity=".7"/>
+  <circle cx="20" cy="120" r="1" fill="white" opacity=".6"/>
+  <circle cx="180" cy="150" r="1.2" fill="white" opacity=".8"/>
+  <radialGradient id="nb" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#3010a0" stop-opacity=".4"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+  <ellipse cx="100" cy="100" rx="90" ry="80" fill="url(#nb)"/>
+  <polygon points="100,12 180,57 180,143 100,188 20,143 20,57" fill="none" stroke="#60c8ff" stroke-width="4" opacity=".85"/>
+  <radialGradient id="pg" cx="38%" cy="35%" r="60%"><stop offset="0%" stop-color="#60d0f8"/><stop offset="60%" stop-color="#1878c0"/><stop offset="100%" stop-color="#082848"/></radialGradient>
+  <circle cx="100" cy="115" r="45" fill="url(#pg)"/>
+  <clipPath id="pc"><circle cx="100" cy="115" r="45"/></clipPath>
+  <g clip-path="url(#pc)" opacity=".4">
+    <ellipse cx="100" cy="105" rx="45" ry="6" fill="#40b0e0"/>
+    <ellipse cx="100" cy="117" rx="45" ry="5" fill="#2890c0"/>
+    <ellipse cx="100" cy="129" rx="45" ry="4" fill="#30a0d0"/>
+  </g>
+  <ellipse cx="100" cy="115" rx="62" ry="16" fill="none" stroke="#80d0ff" stroke-width="5" opacity=".5"/>
+  <g transform="translate(96,30) rotate(10)">
+    <ellipse cx="0" cy="0" rx="9" ry="22" fill="#c0d8f8"/>
+    <polygon points="-9,10 0,-18 9,10" fill="#a0b8e0"/>
+    <rect x="-9" y="10" width="6" height="12" fill="#2060c0"/>
+    <rect x="3" y="10" width="6" height="12" fill="#2060c0"/>
+    <ellipse cx="0" cy="22" rx="5" ry="3" fill="#ff8020"/>
+    <ellipse cx="0" cy="24" rx="3" ry="6" fill="#ffa040" opacity=".7"/>
+    <circle cx="0" cy="2" r="4" fill="#406080" opacity=".6"/>
+  </g>
+  <text x="100" y="178" font-family="Georgia,serif" font-size="15" font-weight="bold" fill="#60c8ff" text-anchor="middle" letter-spacing="4">NATAC</text>
+</svg>`;
+  const img=new Image();
+  img.onload=()=>{
+    const c=Object.assign(document.createElement('canvas'),{width:512,height:512});
+    c.getContext('2d').drawImage(img,0,0,512,512);
+    const png=c.toDataURL('image/png');
+    const al=document.createElement('link');
+    al.rel='apple-touch-icon';al.href=png;document.head.appendChild(al);
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+
+  // Suppress the native install prompt — it shows but fails silently from a local file
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
+});
+window.addEventListener('load',()=>{
+if(!localStorage.getItem('natac_hide_rules')){
+ setTimeout(()=>showModal(`<h3>🚀 Welcome to Natac</h3>
+ <p style="font-size:.85em;line-height:1.7">
+ First to <b>10 Victory Points</b> wins.<br><br>
+ 🏠 Outpost = 1 VP<br>
+ 🏙 Colony = 2 VP total<br>
+ 🛤 Longest Lane = +2 VP<br>
+ ⚔ Largest Fleet = +2 VP<br>
+ 🃏 VP dev cards = +1 VP (hidden!)<br><br>
+ Turn: Play dev cards → Roll → Build/Trade → End Turn
+ </p>
+ <button class='bg' onclick="localStorage.setItem('natac_hide_rules','1');closeModal()">Launch!</button>`),900);
+}
+});
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- ══ OPTIONAL FIREBASE: paste your config here for online multiplayer ══
+     IMPORTANT — paste these rules into your Firebase Realtime Database rules tab:
+     {
+       "rules": {
+         ".read": true,
+         ".write": true
+       }
+     }
+     (Or use auth-based rules for production)
+  ══ -->
+<script>
+const FB_CFG = {
+  apiKey: "AIzaSyDpgDwV0zXtxnOArrMTcdwxxLIvCX5sgSY",
+  authDomain: "mobile-multiplayer.firebaseapp.com",
+  databaseURL: "https://mobile-multiplayer-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mobile-multiplayer",
+  storageBucket: "mobile-multiplayer.firebasestorage.app",
+  messagingSenderId: "776463856703",
+  appId: "1:776463856703:web:4e179b67022c4efcdff48a"
+};
+
+const USE_FB = !FB_CFG.apiKey.includes('YOUR');
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#06080f;--panel:#0d1220;--panel2:#141c30;--border:#1e3060;
+  --text:#c8d8f0;--muted:#5060a0;--gold:#60c8ff}
+html,body{height:100%;overflow:hidden;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);user-select:none}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;
+  background:var(--bg);background-image:radial-gradient(ellipse at 50% -5%,#0a1a40,var(--bg) 65%);
+  z-index:100;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.screen.off{display:none}
+.card{background:var(--panel);border:2px solid var(--border);border-radius:18px;padding:26px 28px;
+  max-width:400px;width:92%;box-shadow:0 20px 70px rgba(0,0,0,.55);margin:20px auto}
+
+/* ── SETUP CARD ── */
+.setup-top{text-align:center;margin-bottom:20px}
+.setup-icon{width:74px;height:74px;border-radius:20px;background:var(--panel2);border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 10px;
+  box-shadow:0 0 24px rgba(201,168,76,.2)}
+.setup-top h1{font-family:'Cinzel',serif;font-size:2.2em;color:var(--gold);margin-bottom:2px}
+.setup-top p{color:var(--muted);font-size:.84em}
+
+/* ── STEP ROWS ── */
+.step-row{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.step-badge{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:1em;font-weight:700;
+  color:var(--gold);font-family:'Cinzel',serif}
+.step-num-badge{background:var(--panel2);border:1px solid var(--border)}
+.step-label{font-weight:700;font-size:.82em;margin-bottom:1px}
+.step-hint{font-size:.7em;color:var(--muted)}
+.step-arr{font-size:1em;color:var(--muted);margin-left:auto;flex-shrink:0;transition:transform .2s}
+.step-arr.open{transform:rotate(180deg)}
+
+/* ── OPTION CARDS ── */
+.opt-row{background:var(--panel2);border:2px solid var(--border);border-radius:10px;
+  padding:10px 12px;margin-bottom:4px;cursor:pointer;
+  transition:border-color .15s,background .15s}
+.opt-row:hover,.opt-row:active{border-color:var(--gold);background:rgba(201,168,76,.05)}
+.expand-zone{background:var(--panel2);border:2px solid var(--border);border-top:none;
+  border-radius:0 0 10px 10px;padding:10px 12px 14px;margin-bottom:8px;margin-top:-6px;display:none}
+.expand-zone.open{display:block}
+.card h1{font-family:'Cinzel',serif;font-size:1.9em;color:var(--gold);margin-bottom:2px}
+.card .sub{color:var(--muted);font-size:.88em;margin-bottom:18px}
+input[type=text]{width:100%;padding:11px 13px;background:var(--panel2);border:2px solid var(--border);
+  border-radius:9px;color:var(--text);font-family:'Nunito',sans-serif;font-size:1em;margin-bottom:9px;
+  outline:none;transition:border-color .2s}
+input[type=text]:focus{border-color:var(--gold)}
+input.code{text-transform:uppercase;letter-spacing:.25em;font-family:'Cinzel',serif;font-size:1.5em;text-align:center}
+.bg{width:100%;background:var(--gold);color:#0c1820;border:none;border-radius:9px;padding:14px;
+  font-family:'Cinzel',serif;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:7px;
+  letter-spacing:.04em;transition:filter .15s,transform .1s}
+.bg:hover{filter:brightness(1.12);transform:translateY(-1px)}.bg:active{transform:none}
+.bgh{width:100%;background:transparent;border:2px solid var(--border);border-radius:9px;padding:12px;
+  font-family:'Nunito',sans-serif;font-size:.95em;font-weight:700;cursor:pointer;color:var(--muted);
+  margin-bottom:7px;transition:border-color .15s,color .15s}
+.bgh:hover{border-color:var(--gold);color:var(--gold)}
+.divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:var(--muted);font-size:.8em}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.pbtns{display:flex;gap:10px;justify-content:center;margin-bottom:22px}
+.pbtn{background:var(--panel2);border:2px solid var(--border);color:var(--text);border-radius:10px;
+  padding:13px 22px;font-size:1.3em;font-family:'Cinzel',serif;cursor:pointer;transition:border-color .15s}
+.pbtn:hover,.pbtn.sel{border-color:var(--gold)}.pbtn.sel{background:rgba(201,168,76,.12);color:var(--gold)}
+
+/* ── END-GAME STATS ── */
+.stats-modal{max-width:480px;max-height:88vh;overflow-y:auto;width:94%}
+.stats-winner{text-align:center;padding:14px 0 18px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.stats-section{margin-bottom:18px}
+.stats-title{font-family:'Cinzel',serif;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+/* Player score breakdown */
+.score-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:.82em}
+.score-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.score-name{font-weight:700;flex:1}
+.score-bar-wrap{flex:2;height:14px;background:rgba(255,255,255,.07);border-radius:7px;overflow:hidden}
+.score-bar{height:100%;border-radius:7px;transition:width .6s ease}
+.score-vp{font-weight:700;color:var(--gold);flex-shrink:0;width:32px;text-align:right}
+/* Dice distribution */
+.dice-grid{display:grid;grid-template-columns:repeat(11,1fr);gap:3px;align-items:end}
+.dice-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.dice-bar-wrap{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:54px;}
+.dice-bar{width:80%;border-radius:3px 3px 0 0;min-height:2px;transition:height .5s ease}
+.dice-n{font-size:.6em;color:var(--muted)}
+.dice-count{font-size:.58em;font-weight:700;color:var(--text)}
+/* Resource totals */
+.res-totals{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rt-cell{background:rgba(0,0,0,.3);border-radius:6px;padding:5px 3px;text-align:center}
+.rt-ico{font-size:1.1em}.rt-n{font-size:.72em;font-weight:700;display:block;margin-top:1px}
+.rt-label{font-size:.55em;color:var(--muted);display:block}
+
+#s-lb .card{max-width:440px;padding:24px 28px}
+.lb-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.lb-head h1{font-family:'Cinzel',serif;font-size:1.6em;color:var(--gold);flex:1}
+.lb-back{background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--muted);
+  border-radius:7px;padding:6px 12px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.85em;
+  transition:background .15s}
+.lb-back:hover{background:rgba(255,255,255,.14);color:var(--text)}
+.lb-row{display:grid;grid-template-columns:28px 1fr 36px 36px 44px;gap:6px;
+  align-items:center;padding:7px 10px;border-radius:8px;margin-bottom:4px;font-size:.82em}
+.lb-row.hdr{font-size:.7em;font-weight:700;color:var(--muted);padding-bottom:4px;
+  border-bottom:1px solid var(--border);border-radius:0;margin-bottom:6px}
+.lb-row.top1{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3)}
+.lb-row.top2{background:rgba(180,180,200,.08)}
+.lb-row.top3{background:rgba(180,130,80,.08)}
+.lb-rank{font-weight:700;font-family:'Cinzel',serif;text-align:center}
+.lb-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-num{text-align:center;font-weight:700}
+.lb-pct{text-align:center;font-size:.78em;color:var(--muted)}
+.lb-empty{text-align:center;padding:28px 0;color:var(--muted);font-size:.88em}
+.lb-refresh{background:var(--panel2);border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.78em;margin-top:10px;width:100%;
+  transition:background .15s}
+.lb-refresh:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.lb-btn{background:rgba(201,168,76,.12);border:2px solid rgba(201,168,76,.35);color:var(--gold);
+  border-radius:9px;padding:10px 14px;cursor:pointer;font-family:'Nunito',sans-serif;
+  font-size:.85em;font-weight:700;width:100%;margin-bottom:5px;transition:background .15s}
+.lb-btn:hover{background:rgba(201,168,76,.22)}
+
+.rcode{font-family:'Cinzel',serif;font-size:2.5em;letter-spacing:.2em;color:var(--gold);
+  background:rgba(201,168,76,.08);border:2px solid rgba(201,168,76,.28);border-radius:12px;
+  padding:13px 18px;margin:13px 0;cursor:pointer;transition:background .15s}
+.rcode:hover{background:rgba(201,168,76,.16)}
+.lslot{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--panel2);
+  border-radius:7px;margin-bottom:5px;border:2px solid var(--border)}
+.ldot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.lname{font-weight:700;font-size:.87em;flex:1;text-align:left}
+.lyou{font-size:.67em;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 5px}
+.wdots::after{content:'...';animation:wd 1.4s infinite}
+@keyframes wd{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+
+/* ── GAME LAYOUT ── */
+#game{display:flex;width:100vw;height:100dvh;overflow:hidden}
+#cwrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+canvas{display:block;cursor:pointer;touch-action:none}
+#sb{width:240px;min-width:240px;background:var(--panel);border-left:2px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+
+/* Mobile portrait — bigger board, tiny sidebar */
+@media(max-width:680px){
+  #game{flex-direction:column}
+  #cwrap{flex:none;width:100%;height:62vw;min-height:200px;transition:height .25s ease}
+  #cwrap.board-big{height:calc(100dvh - 82px)!important} /* minimised: board fills all minus sbar+mini */
+  #sb{flex:1;width:100%;min-width:0;border-left:none;border-top:2px solid var(--border);
+    overflow-y:auto;transition:flex .25s ease,height .25s ease}
+  #sb.min{flex:none!important;height:auto!important;overflow:hidden}
+  #sb.min #pwrap,#sb.min #ap,#sb.min #log{display:none!important}
+  #sb.min #mini-bar{display:flex!important}
+  .pc{margin-bottom:3px}
+  .btn{min-height:42px;padding:8px 7px;font-size:.74em}
+  #ap{padding:5px 4px 4px}
+  #log{max-height:42px}
+}
+@media(max-height:480px) and (orientation:landscape){
+  #game{flex-direction:row}
+  #sb{width:200px;min-width:200px}
+}
+
+/* ── MINI BAR (shown when panel minimised on mobile) ── */
+#mini-bar{display:none;align-items:center;gap:5px;padding:5px 8px;
+  background:#0e1928;border-top:1px solid var(--border);flex-shrink:0}
+#mini-status{flex:1;font-size:.73em;font-family:'Cinzel',serif;color:var(--gold);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-btn{background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text);
+  border-radius:7px;padding:5px 11px;cursor:pointer;font-size:.8em;font-weight:700;
+  font-family:'Nunito',sans-serif;transition:background .15s;white-space:nowrap;min-height:34px}
+.mini-btn:hover{background:rgba(255,255,255,.18)}
+.mini-btn:disabled{opacity:.28;cursor:not-allowed}
+#b-min{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:.85em;
+  flex-shrink:0;transition:background .15s;font-family:'Nunito',sans-serif;line-height:1}
+#b-min:hover{background:rgba(255,255,255,.15)}
+
+/* ── ZOOM CONTROLS (floating in canvas area) ── */
+#zoom-ctrl{position:absolute;bottom:10px;right:10px;display:flex;flex-direction:column;
+  gap:4px;z-index:5;opacity:.7;transition:opacity .2s}
+#zoom-ctrl:hover{opacity:1}
+.zoom-btn{width:34px;height:34px;background:rgba(14,25,40,.85);border:1px solid rgba(255,255,255,.2);
+  color:var(--text);border-radius:8px;cursor:pointer;font-size:1.1em;font-weight:700;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+  font-family:'Nunito',sans-serif;user-select:none}
+.zoom-btn:hover{background:rgba(201,168,76,.3);border-color:var(--gold)}
+
+
+/* ── SIDEBAR ── */
+#sbar{background:var(--panel2);border-bottom:1px solid var(--border);padding:5px 8px;
+  font-size:.72em;font-weight:700;color:var(--gold);font-family:'Cinzel',serif;
+  letter-spacing:.03em;min-height:32px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+#sbar-txt{flex:1;text-align:center;font-size:1em}
+#b-exit{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.82em;
+  flex-shrink:0;transition:background .15s,color .15s;font-family:'Nunito',sans-serif}
+#b-exit:hover{background:rgba(231,76,60,.25);border-color:rgba(231,76,60,.4);color:#e88}
+#b-sound{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.9em;
+  flex-shrink:0;transition:background .15s;font-family:'Nunito',sans-serif;line-height:1}
+#b-sound:hover{background:rgba(255,255,255,.15)}
+#pwrap{flex:1;overflow-y:auto;padding:5px 5px 0}
+
+/* ── PLAYER CARD — compact single-row design ── */
+.pc{border-radius:7px;padding:5px 7px;margin-bottom:4px;border:2px solid transparent;
+  border-left-width:4px!important;transition:opacity .2s}
+.pc.active{opacity:1!important}.pc:not(.active){opacity:.48}
+/* Top row: name + badges + VP */
+.pc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.pn{font-family:'Cinzel',serif;font-size:.74em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pvp{font-size:.76em;font-weight:700;color:var(--gold);flex-shrink:0;margin-left:4px}
+/* Resource row: inline emoji + count pairs */
+.res-row{display:flex;gap:3px;align-items:center;margin-bottom:2px;flex-wrap:wrap}
+.res-pill{display:flex;align-items:center;gap:1px;background:rgba(0,0,0,.28);
+  border-radius:4px;padding:1px 4px;font-size:.7em;line-height:1.4}
+.res-pill .ri{font-size:.9em}.res-pill .rn{font-weight:700;min-width:8px;text-align:right}
+/* Stats row */
+.pfoot{font-size:.6em;color:var(--muted);display:flex;gap:6px;align-items:center}
+/* Dev card chips */
+.dcs{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
+.dc{font-size:.6em;background:#5a3000;border:1px solid #8a5010;border-radius:3px;padding:1px 4px;
+  cursor:pointer;transition:filter .15s;white-space:nowrap}
+.dc:hover:not(.off){filter:brightness(1.6)}.dc.off{opacity:.28;cursor:default}
+
+/* ── ACTION BUTTONS ── */
+#ap{border-top:2px solid var(--border);padding:5px 5px 4px;background:#0e1928;flex-shrink:0}
+#bgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.btn{display:flex;align-items:center;justify-content:center;gap:3px;padding:6px 5px;border:none;
+  border-radius:7px;cursor:pointer;font-size:.72em;font-weight:700;font-family:'Nunito',sans-serif;
+  transition:filter .15s,opacity .15s,transform .08s;text-align:center;width:100%;min-height:36px}
+.btn:hover:not(:disabled){filter:brightness(1.3)}.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{opacity:.25;cursor:not-allowed}.btn.on{outline:2px solid white;outline-offset:1px}
+.span2{grid-column:span 2}
+.btn-roll{background:#7a1818;color:#fde8e8}.btn-road{background:#19441f;color:#c0f0c8}
+.btn-sett{background:#1a3452;color:#c0dcf5}.btn-city{background:#46246a;color:#dcc8f8}
+.btn-trade{background:#243462;color:#b8d0f5}.btn-dev{background:#523400;color:#fde0b8}
+.btn-cancel{background:#242830;color:#909090}.btn-end{background:#1a2838;color:#80a0c0}
+.btn-accept{background:#1e6b30;color:#c0f0c8}.btn-decline{background:#7a1818;color:#fde8e8}
+.cost{font-size:.68em;opacity:.5;display:block;margin-top:1px}
+
+/* ── LOG ── */
+#log{max-height:52px;overflow-y:auto;padding:3px 5px 4px;font-size:.63em;color:var(--muted);
+  line-height:1.6;border-top:1px solid var(--border);flex-shrink:0}
+#log div{padding-left:4px;border-left:2px solid var(--border);margin-bottom:1px}
+#log div.lc{border-left-color:#3a5a9a;color:#8aa0d0} /* chat entry style */
+
+/* ── DICE OVERLAY ── */
+#turn-ind{position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:rgba(12,26,44,.82);border:1px solid var(--border);border-radius:20px;
+  padding:4px 14px;font-size:.72em;font-family:'Cinzel',serif;color:var(--gold);
+  pointer-events:none;z-index:6;white-space:nowrap;opacity:0;
+  transition:opacity .3s;backdrop-filter:blur(4px)}
+#turn-ind.show{opacity:1}
+
+/* ── TRADE OFFER BANNER (shown to recipient) ── */
+#trade-banner{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:rgba(36,52,98,.95);border:2px solid #4a6aa8;border-radius:12px;
+  padding:10px 16px;pointer-events:auto;z-index:7;white-space:nowrap;
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  backdrop-filter:blur(6px);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+#trade-banner.show{display:flex}
+#trade-banner .tb-title{font-size:.8em;font-family:'Cinzel',serif;color:var(--gold)}
+#trade-banner .tb-detail{font-size:.85em;color:var(--text)}
+#trade-banner .tb-btns{display:flex;gap:8px}
+#trade-banner .tb-btns button{padding:5px 16px;border:none;border-radius:7px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82em}
+
+#dov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:none;gap:14px;pointer-events:none;z-index:10;filter:drop-shadow(0 8px 24px rgba(0,0,0,.7))}
+#dov.show{display:flex}
+.die{width:60px;height:60px;background:#fcfcfc;border-radius:12px;display:flex;
+  align-items:center;justify-content:center;font-size:40px;
+  box-shadow:0 6px 20px rgba(0,0,0,.5),inset 0 -3px 8px rgba(0,0,0,.08)}
+.die.spin{animation:dieIn .65s cubic-bezier(.15,.9,.3,1.2) both}
+@keyframes dieIn{
+  0%{transform:rotate(-25deg) scale(.2);opacity:0}
+  40%{opacity:1}65%{transform:rotate(5deg) scale(1.14)}
+  82%{transform:rotate(-2deg) scale(1.04)}100%{transform:rotate(0) scale(1)}}
+
+/* ── MODAL ── */
+#mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;
+  align-items:center;justify-content:center}
+#mbg.open{display:flex}
+.modal{background:var(--panel);border:2px solid var(--border);border-radius:15px;
+  padding:22px 26px;min-width:265px;max-width:480px;width:94%;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);max-height:88vh;overflow-y:auto}
+.modal h3{font-family:'Cinzel',serif;color:var(--gold);margin-bottom:11px;font-size:.98em}
+.modal select{width:100%;padding:9px;background:var(--panel2);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;margin-bottom:7px;
+  font-family:'Nunito',sans-serif;font-size:.9em}
+.mrow{display:flex;gap:7px;margin-top:9px}.mrow .btn{flex:1;justify-content:center}
+.rpick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:9px 0}
+.rp{background:var(--panel2);border:2px solid var(--border);border-radius:8px;
+  padding:10px 3px;text-align:center;cursor:pointer;min-height:58px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:border-color .15s,background .15s}
+.rp:hover{border-color:var(--gold);background:rgba(201,168,76,.1)}
+.rp .icon{font-size:1.35em}.rp .lbl{font-size:.56em;display:block;margin-top:2px;color:var(--muted)}
+.sbtn2{display:flex;align-items:center;gap:9px;width:100%;padding:10px 13px;border:2px solid var(--border);
+  border-radius:8px;background:var(--panel2);color:var(--text);cursor:pointer;font-family:'Nunito',sans-serif;
+  font-size:.87em;font-weight:700;margin-bottom:6px;transition:border-color .15s}
+.sbtn2:hover{border-color:var(--gold)}.cdot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+
+/* ── TURN INDICATOR (replaces blocking overlay) ── */
+#turn-ind{position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:rgba(12,26,44,.82);border:1px solid var(--border);border-radius:20px;
+  padding:4px 14px;font-size:.72em;font-family:'Cinzel',serif;color:var(--gold);
+  pointer-events:none;z-index:6;white-space:nowrap;opacity:0;
+  transition:opacity .3s;backdrop-filter:blur(4px)}
+#turn-ind.show{opacity:1}
+
+/* ── TRADE OFFER BANNER ── */
+#trade-banner{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:rgba(36,52,98,.95);border:2px solid #4a6aa8;border-radius:12px;
+  padding:10px 16px;pointer-events:auto;z-index:7;
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  backdrop-filter:blur(6px);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+#trade-banner.show{display:flex}
+#trade-banner .tb-title{font-size:.8em;font-family:'Cinzel',serif;color:var(--gold)}
+#trade-banner .tb-detail{font-size:.85em;color:var(--text);white-space:nowrap}
+#trade-banner .tb-btns{display:flex;gap:8px}
+#trade-banner .tb-btns button{padding:5px 16px;border:none;border-radius:7px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82em}
+
+/* ── AVATAR PICKER ── */
+.avatar-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.avatar-display{width:44px;height:44px;border-radius:12px;background:var(--panel2);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:1.6em;cursor:pointer;
+  transition:border-color .15s;flex-shrink:0}
+.avatar-display:hover{border-color:var(--gold)}
+.avatar-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:10px 0}
+.av-opt{width:38px;height:38px;border-radius:9px;background:var(--panel2);border:2px solid transparent;
+  display:flex;align-items:center;justify-content:center;font-size:1.3em;cursor:pointer;
+  transition:border-color .12s,transform .1s}
+.av-opt:hover{border-color:var(--muted);transform:scale(1.1)}
+.av-opt.sel{border-color:var(--gold);background:rgba(96,200,255,.1)}
+
+/* ── HOW TO PLAY ── */
+.htp-toggle{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--muted);border-radius:9px;padding:9px 14px;cursor:pointer;font-family:'Nunito',sans-serif;
+  font-size:.84em;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  transition:background .15s,color .15s}
+.htp-toggle:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.htp-arr{margin-left:auto;transition:transform .2s}
+.htp-arr.open{transform:rotate(180deg)}
+#htp-body{display:none;font-size:.78em;line-height:1.65;color:var(--muted);
+  background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:9px;
+  padding:14px 16px;margin-bottom:12px}
+#htp-body.open{display:block}
+.htp-section{margin-bottom:12px}
+.htp-section:last-child{margin-bottom:0}
+.htp-h{font-family:'Cinzel',serif;font-size:.85em;color:var(--gold);margin-bottom:6px;display:block}
+.htp-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.htp-ico{width:22px;flex-shrink:0;text-align:center}
+.htp-cost{font-size:.75em;color:var(--muted);margin-left:auto;white-space:nowrap}
+.htp-tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.htp-tile{background:rgba(255,255,255,.04);border-radius:6px;padding:5px 8px;font-size:.8em}
+.htp-tile b{color:var(--text)}
+
+/* ── IN-GAME HELP BUTTON ── */
+#b-help{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.88em;
+  flex-shrink:0;transition:background .15s;font-family:'Nunito',sans-serif;line-height:1}
+#b-help:hover{background:rgba(96,200,255,.2);color:var(--gold)}
+
+/* ── IN-GAME HELP MODAL ── */
+.help-modal{max-width:420px;max-height:82vh;overflow-y:auto;width:94%}
+.help-tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.help-tab{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;
+  padding:5px 10px;cursor:pointer;font-size:.74em;font-weight:700;color:var(--muted);
+  transition:background .12s,color .12s}
+.help-tab.active{background:rgba(96,200,255,.15);border-color:var(--gold);color:var(--gold)}
+.help-page{display:none}.help-page.active{display:block}
+
+#chat-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(14,22,36,.97);border-top:2px solid var(--border);
+  display:flex;flex-direction:column;
+  height:280px;max-height:55%;
+  transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.3,1);
+  z-index:20;backdrop-filter:blur(8px);
+  pointer-events:auto;touch-action:auto
+}
+#chat-panel.open{transform:translateY(0)}
+#chat-head{display:flex;align-items:center;padding:7px 10px 7px 12px;
+  border-bottom:1px solid var(--border);flex-shrink:0;gap:8px}
+#chat-head span{font-family:'Cinzel',serif;font-size:.8em;color:var(--gold);flex:1}
+#chat-close{background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--muted);
+  border-radius:5px;padding:3px 9px;cursor:pointer;font-size:.9em;font-family:'Nunito',sans-serif}
+#chat-msgs{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.cmsg{font-size:.76em;line-height:1.4}
+.cmsg .cn{font-weight:700;margin-right:4px}
+.cmsg .ct{color:var(--text)}
+.cmsg.sys{color:var(--muted);font-style:italic;font-size:.7em}
+#chat-input-row{display:flex;gap:6px;padding:7px 8px;border-top:1px solid var(--border);flex-shrink:0}
+#chat-input{flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);
+  border-radius:7px;padding:7px 11px;font-family:'Nunito',sans-serif;font-size:.85em;outline:none;
+  transition:border-color .15s}
+#chat-input:focus{border-color:var(--gold)}
+#chat-send{background:var(--gold);color:#0c1820;border:none;border-radius:7px;
+  padding:7px 14px;cursor:pointer;font-weight:700;font-size:.82em;font-family:'Nunito',sans-serif;
+  transition:filter .15s;flex-shrink:0}
+#chat-send:hover{filter:brightness(1.12)}
+/* Chat button + badge */
+#b-chat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.88em;
+  flex-shrink:0;transition:background .15s;font-family:'Nunito',sans-serif;
+  position:relative;line-height:1}
+#b-chat:hover{background:rgba(255,255,255,.15)}
+#b-chat.active{color:var(--gold);border-color:rgba(201,168,76,.5)}
+.cbadge{position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;
+  border-radius:9px;font-size:.55em;font-weight:700;padding:1px 4px;line-height:1.4;
+  min-width:14px;text-align:center;display:none}
+.cbadge.show{display:block}
+
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+<div class="screen" id="s-setup">
+  <div class="card">
+
+    <!-- Title / icon -->
+    <div class="setup-top">
+      <div class="setup-icon">🚀</div>
+      <h1>Natac</h1>
+      <p>Space Edition · 2–4 players</p>
+    </div>
+
+    <!-- Step 1: Name + Avatar -->
+    <div class="step-row" style="margin-bottom:4px">
+      <div class="step-badge step-num-badge">1</div>
+      <div><div class="step-label">Your Name & Avatar</div></div>
+    </div>
+    <div class="avatar-row">
+      <div class="avatar-display" id="av-display" onclick="toggleAvatarPicker()" title="Choose avatar">👨‍🚀</div>
+      <input type="text" id="pname" placeholder="Enter your name…" maxlength="14" style="flex:1;margin-bottom:0">
+    </div>
+    <!-- Avatar picker (hidden by default) -->
+    <div id="av-picker" style="display:none;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px">
+      <p style="font-size:.72em;color:var(--muted);margin-bottom:6px">Choose your avatar:</p>
+      <div class="avatar-grid" id="av-grid"></div>
+    </div>
+
+    <!-- How to Play (collapsible) -->
+    <button class="htp-toggle" onclick="toggleHTP()">
+      🚀 How to Play <span class="htp-arr" id="htp-arr">▼</span>
+    </button>
+    <div id="htp-body">
+      <div class="htp-section">
+        <span class="htp-h">🎯 Goal</span>
+        Be the first to reach <strong style="color:var(--text)">10 Victory Points</strong>. Build outposts and colonies, control trade routes, and play development cards.
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">🔄 Each Turn</span>
+        <div class="htp-row"><span class="htp-ico">1️⃣</span><span>Optionally play a Knight dev card</span></div>
+        <div class="htp-row"><span class="htp-ico">2️⃣</span><span>Roll the dice — all matching hexes produce resources</span></div>
+        <div class="htp-row"><span class="htp-ico">3️⃣</span><span>Build, trade, or buy dev cards</span></div>
+        <div class="htp-row"><span class="htp-ico">4️⃣</span><span>End your turn</span></div>
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">🏗 Building Costs</span>
+        <div class="htp-row"><span class="htp-ico">🛤</span><span>Hyperspace Lane</span><span class="htp-cost">⛽+🪨</span></div>
+        <div class="htp-row"><span class="htp-ico">🏠</span><span>Outpost (1 VP)</span><span class="htp-cost">⛽+🪨+💨+⚡</span></div>
+        <div class="htp-row"><span class="htp-ico">🏙</span><span>Colony (2 VP)</span><span class="htp-cost">💎💎💎+⚡⚡</span></div>
+        <div class="htp-row"><span class="htp-ico">🃏</span><span>Dev Card</span><span class="htp-cost">💎+⚡+💨</span></div>
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">🌌 Tiles & Resources</span>
+        <div class="htp-tile-grid">
+          <div class="htp-tile">🌌 Nebula → <b>⛽ Fuel</b></div>
+          <div class="htp-tile">☄️ Asteroids → <b>🪨 Titanium</b></div>
+          <div class="htp-tile">🪐 Gas Giant → <b>💨 Oxygen</b></div>
+          <div class="htp-tile">⚡ Solar Array → <b>⚡ Energy</b></div>
+          <div class="htp-tile">💎 Crystal Moon → <b>💎 Crystals</b></div>
+          <div class="htp-tile">🕳️ Void → no resources</div>
+        </div>
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">⚓ Space Docks (Ports)</span>
+        <div class="htp-row"><span class="htp-ico">🌌</span><span>Any 3 of same resource → 1 of any (3:1)</span></div>
+        <div class="htp-row"><span class="htp-ico">⛽🪨💨⚡💎</span><span>2 of that resource → 1 of any (2:1)</span></div>
+        <div class="htp-row" style="margin-top:2px"><span style="font-size:.88em">Default bank rate: 4 of same → 1 of any</span></div>
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">🏆 Victory Points</span>
+        <div class="htp-row"><span class="htp-ico">🏠</span><span>Outpost = 1 VP each (max 5)</span></div>
+        <div class="htp-row"><span class="htp-ico">🏙</span><span>Colony = 2 VP each (max 4)</span></div>
+        <div class="htp-row"><span class="htp-ico">🛤</span><span>Longest Lane (5+) = +2 VP</span></div>
+        <div class="htp-row"><span class="htp-ico">⚔</span><span>Largest Fleet (3+ knights) = +2 VP</span></div>
+        <div class="htp-row"><span class="htp-ico">🃏</span><span>VP dev cards = +1 VP each (hidden!)</span></div>
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">🎲 Rolling 7 — Gravity Storm</span>
+        No resources are produced. Players with 7+ cards must discard half. Then move the robber to any tile — it blocks that tile and you steal a card from a player there.
+      </div>
+      <div class="htp-section">
+        <span class="htp-h">💡 Tips</span>
+        <div class="htp-row"><span class="htp-ico">•</span><span>Start near ports that match your tile resources</span></div>
+        <div class="htp-row"><span class="htp-ico">•</span><span>6 and 8 produce most often — settle near them early</span></div>
+        <div class="htp-row"><span class="htp-ico">•</span><span>Knight cards protect against the robber</span></div>
+        <div class="htp-row"><span class="htp-ico">•</span><span>Keep your VP dev cards secret until you win!</span></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Mode -->
+    <div class="step-row" style="margin-bottom:8px">
+      <div class="step-badge step-num-badge">2</div>
+      <div><div class="step-label">How are you playing?</div></div>
+    </div>
+
+    <!-- Option A: Create -->
+    <div class="opt-row step-row" onclick="goCreate()">
+      <div class="step-badge" style="background:#19441f;font-size:1.2em">🎮</div>
+      <div style="flex:1">
+        <div class="step-label">Create Online Game</div>
+        <div class="step-hint">Host a room · friends join with your 4-letter code</div>
+      </div>
+      <div class="step-arr">→</div>
+    </div>
+
+    <!-- Option B: Join -->
+    <div class="opt-row step-row" id="join-hd" onclick="toggleOpt('join')">
+      <div class="step-badge" style="background:#1a3452;font-size:1.2em">🔗</div>
+      <div style="flex:1">
+        <div class="step-label">Join Online Game</div>
+        <div class="step-hint">Enter a room code from a friend</div>
+      </div>
+      <div class="step-arr" id="join-arr">↓</div>
+    </div>
+    <div class="expand-zone" id="join-body">
+      <input type="text" id="jcode" class="code" placeholder="XXXX" maxlength="4">
+      <button class="bg" onclick="goJoin();event.stopPropagation()" style="margin-bottom:0">Join →</button>
+    </div>
+
+    <!-- Option C: Local -->
+    <div class="opt-row step-row" id="local-hd" onclick="toggleOpt('local')">
+      <div class="step-badge" style="background:#46246a;font-size:1.2em">👥</div>
+      <div style="flex:1">
+        <div class="step-label">Pass &amp; Play</div>
+        <div class="step-hint">One device · take turns passing it around</div>
+      </div>
+      <div class="step-arr" id="local-arr">↓</div>
+    </div>
+    <div class="expand-zone" id="local-body">
+      <div style="font-size:.8em;color:var(--muted);margin-bottom:8px">How many players?</div>
+      <div class="pbtns" style="margin-bottom:12px">
+        <button class="pbtn" data-n="2">2</button>
+        <button class="pbtn sel" data-n="3">3</button>
+        <button class="pbtn" data-n="4">4</button>
+      </div>
+      <button class="bg" onclick="startLocal();event.stopPropagation()" style="margin-bottom:0">Start Game →</button>
+    </div>
+
+    <!-- Firebase warning (shown when not configured) -->
+    <div id="fb-warn" style="display:none;margin:10px 0 0;padding:9px 12px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:8px;font-size:.72em;color:#e8a090;line-height:1.55">
+      ⚠️ <strong>Firebase not configured</strong> — online options won't work until you paste your project keys at the top of this file.<br>
+      <a href="https://console.firebase.google.com" target="_blank" style="color:var(--gold)">Get a free Firebase project →</a>
+    </div>
+
+    <!-- Leaderboard link -->
+    <div class="divider" style="margin:12px 0 8px">hall of fame</div>
+    <button class="lb-btn" onclick="openLB()">🏆 View Leaderboard</button>
+    <button class="lb-btn" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.15);color:var(--muted);font-size:.8em;padding:8px 14px" onclick="showInstallHelp()">📱 Add to Home Screen</button>
+
+    <p id="err" style="color:#e74c3c;font-size:.8em;min-height:1.1em;margin-top:8px;text-align:center"></p>
+  </div>
+</div>
+
+<!-- ══ LEADERBOARD ══ -->
+<div class="screen off" id="s-lb">
+  <div class="card" id="lb-card">
+    <div class="lb-head">
+      <span style="font-size:1.8em">🏆</span>
+      <h1>Leaderboard</h1>
+      <button class="lb-back" onclick="closeLB()">← Back</button>
+    </div>
+    <p style="font-size:.75em;color:var(--muted);margin-bottom:14px">All-time wins across all online games</p>
+    <div id="lb-rows"><div class="lb-empty">Loading…</div></div>
+    <button class="lb-refresh" onclick="loadLB()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- ══ LOBBY ══ -->
+<div class="screen off" id="s-lobby">
+  <div class="card">
+    <h1 style="font-size:1.9em">Lobby</h1>
+    <p class="sub">Share this code with friends</p>
+    <div class="rcode" id="lcode" onclick="copyCode()">····</div>
+    <p style="font-size:.7em;color:var(--muted);margin-bottom:9px">tap to copy · 2–4 players</p>
+    <div id="lslots"></div>
+    <div id="lactns" style="margin-top:13px"></div>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game" style="display:none">
+  <div id="cwrap">
+    <canvas id="board" width="680" height="636"></canvas>
+    <!-- Zoom controls -->
+    <div id="zoom-ctrl">
+      <button class="zoom-btn" onclick="zoomBoard(1.28)" title="Zoom in">+</button>
+      <button class="zoom-btn" onclick="resetCam()"      title="Reset zoom">⊕</button>
+      <button class="zoom-btn" onclick="zoomBoard(1/1.28)" title="Zoom out">−</button>
+    </div>
+    <div id="dov">
+      <div class="die" id="die1">🎲</div>
+      <div class="die" id="die2">🎲</div>
+    </div>
+    <!-- Turn indicator: non-blocking small pill shown when it's not your turn -->
+    <div id="turn-ind"></div>
+    <!-- Trade banner: shown to recipient of a player trade offer -->
+    <div id="trade-banner">
+      <div class="tb-title">🤝 Trade Offer</div>
+      <div class="tb-detail" id="tb-detail"></div>
+      <div class="tb-btns">
+        <button style="background:#1e6b30;color:#c0f0c8" onclick="respondTrade(true)">Accept ✓</button>
+        <button style="background:#7a1818;color:#fde8e8" onclick="respondTrade(false)">Decline ✗</button>
+      </div>
+    </div>
+    <!-- Chat panel -->
+    <div id="chat-panel">
+      <div id="chat-head">
+        <span>💬 Chat</span>
+        <button id="chat-close" onclick="toggleChat()">✕</button>
+      </div>
+      <div id="chat-msgs"></div>
+      <div id="chat-input-row">
+        <input id="chat-input" placeholder="Message…" maxlength="140"
+               onkeydown="if(event.key==='Enter')sendChat()">
+        <button id="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+  <div id="sb">
+    <div id="sbar">
+      <button id="b-exit" onclick="confirmExit()" title="Leave game">← Exit</button>
+      <span id="sbar-txt">Loading…</span>
+      <button id="b-min"  onclick="toggleMin()"   title="Collapse panel">↓</button>
+      <button id="b-help" onclick="showHelp()"    title="How to Play">?</button>
+      <button id="b-chat" onclick="toggleChat()"  title="Chat">💬<span class="cbadge" id="chat-badge"></span></button>
+      <button id="b-sound" onclick="toggleSound()" title="Toggle sound">🔊</button>
+    </div>
+    <!-- Mini-bar: shown only when panel is collapsed on mobile -->
+    <div id="mini-bar">
+      <span id="mini-status">…</span>
+      <button class="mini-btn" id="b-mini-roll" onclick="doRoll()" disabled>🎲 Roll</button>
+      <button class="mini-btn" id="b-mini-end"  onclick="endTurn()" disabled>→ End</button>
+    </div>
+    <div id="pwrap"></div>
+    <div id="ap">
+      <div id="bgrid">
+        <button class="btn btn-roll"  id="b-roll"   onclick="doRoll()"       disabled>🎲 Roll</button>
+        <button class="btn btn-trade" id="b-trade"  onclick="openTrade()"    disabled>🔄 Trade</button>
+        <button class="btn btn-road"  id="b-road"   onclick="build('road')"  disabled>🛤 Road<span class="cost">W+B</span></button>
+        <button class="btn btn-sett"  id="b-sett"   onclick="build('sett')"  disabled>🏠 Sett<span class="cost">W+B+S+Wh</span></button>
+        <button class="btn btn-city"  id="b-city"   onclick="build('city')"  disabled>🏙 City<span class="cost">3O+2Wh</span></button>
+        <button class="btn btn-dev"   id="b-dev"    onclick="buyDev()"       disabled>🃏 Dev<span class="cost">O+Wh+S</span></button>
+        <button class="btn btn-cancel span2" id="b-cancel" onclick="cancelBuild()" style="display:none">✕ Cancel Build</button>
+        <button class="btn btn-end span2"    id="b-end"    onclick="endTurn()"    disabled>End Turn →</button>
+      </div>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div id="mbg"><div class="modal" id="mc"></div></div>
+
+<script>
+// ════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════
+const SQRT3=Math.sqrt(3),S=50,CX=338,CY=310,CW=680,CH=636;
+const TILES=['nebula','nebula','nebula','nebula','asteroids','asteroids','asteroids',
+  'gasplanet','gasplanet','gasplanet','gasplanet','solararray','solararray','solararray','solararray',
+  'crystalmoon','crystalmoon','crystalmoon','void'];
+// Space tile → resource mapping (internal keys unchanged so game logic stays identical)
+const TILE_RES={nebula:'wood',asteroids:'brick',gasplanet:'sheep',solararray:'wheat',crystalmoon:'ore',void:null};
+const NUMBERS=[2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
+const PORT_POOL=['3:1','3:1','3:1','3:1','wood','brick','sheep','wheat','ore'];
+const RES=['wood','brick','sheep','wheat','ore'];
+const RES_ICO={wood:'⛽',brick:'🪨',sheep:'💨',wheat:'⚡',ore:'💎'};
+const RES_NAME={wood:'Fuel',brick:'Titanium',sheep:'Oxygen',wheat:'Energy',ore:'Crystals'};
+const PCOLORS=['#e74c3c','#2980b9','#e6b800','#27ae60'];
+const PNAMES=['Red','Blue','Yellow','Green'];
+const COSTS={road:{wood:1,brick:1},sett:{wood:1,brick:1,sheep:1,wheat:1},city:{ore:3,wheat:2},dev:{ore:1,wheat:1,sheep:1}};
+const DEV_DECK=[...Array(14).fill('knight'),...Array(2).fill('road_build'),...Array(2).fill('year_plenty'),
+  ...Array(2).fill('monopoly'),'vp_chapel','vp_hall','vp_market','vp_library','vp_uni'];
+const DEV_LBL={knight:'⚔ Knight',road_build:'🛤 Road Building',year_plenty:'🎁 Year of Plenty',
+  monopoly:'💰 Monopoly',vp_chapel:'⛪+1VP',vp_hall:'🏛+1VP',vp_market:'🏪+1VP',vp_library:'📚+1VP',vp_uni:'🎓+1VP'};
+const HEX_AX=[[0,-2],[1,-2],[2,-2],[-1,-1],[0,-1],[1,-1],[2,-1],
+  [-2,0],[-1,0],[0,0],[1,0],[2,0],[-2,1],[-1,1],[0,1],[1,1],[-2,2],[-1,2],[0,2]];
+
+function showInstallHelp(){
+  const isAndroid=/android/i.test(navigator.userAgent);
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  let steps;
+  if(isAndroid){
+    steps=`<div class="htp-row"><span class="htp-ico">1️⃣</span><span>Open Natac in <strong>Chrome</strong> on your Android device</span></div>
+    <div class="htp-row"><span class="htp-ico">2️⃣</span><span>Tap the <strong>⋮ three-dot menu</strong> (top right)</span></div>
+    <div class="htp-row"><span class="htp-ico">3️⃣</span><span>Tap <strong>"Add to Home screen"</strong></span></div>
+    <div class="htp-row"><span class="htp-ico">4️⃣</span><span>Tap <strong>"Add"</strong> — Natac appears on your home screen with the rocket icon 🚀</span></div>`;
+  } else if(isIOS){
+    steps=`<div class="htp-row"><span class="htp-ico">1️⃣</span><span>Open Natac in <strong>Safari</strong> on your iPhone/iPad</span></div>
+    <div class="htp-row"><span class="htp-ico">2️⃣</span><span>Tap the <strong>Share button</strong> (box with arrow at bottom)</span></div>
+    <div class="htp-row"><span class="htp-ico">3️⃣</span><span>Scroll down and tap <strong>"Add to Home Screen"</strong></span></div>
+    <div class="htp-row"><span class="htp-ico">4️⃣</span><span>Tap <strong>"Add"</strong> — Natac appears on your home screen 🚀</span></div>`;
+  } else {
+    steps=`<div class="htp-row"><span class="htp-ico">📱</span><span><strong>Android Chrome:</strong> ⋮ menu → "Add to Home screen"</span></div>
+    <div class="htp-row"><span class="htp-ico">📱</span><span><strong>iPhone Safari:</strong> Share button → "Add to Home Screen"</span></div>
+    <div class="htp-row"><span class="htp-ico">💻</span><span><strong>Desktop Chrome:</strong> Address bar install icon or ⋮ → "Install Natac"</span></div>`;
+  }
+  showModal(`<h3>📱 Add to Home Screen</h3>
+    <p style="font-size:.82em;color:var(--muted);margin-bottom:14px">Play Natac like a native app — full screen, no browser bar.</p>
+    ${steps}
+    <p style="font-size:.72em;color:var(--muted);margin-top:12px">Tip: the file must be saved locally on your device first. Share it via AirDrop, email, or a link.</p>
+    <button class="btn btn-cancel" style="width:100%;justify-content:center;margin-top:12px" onclick="closeModal()">Got it</button>`);
+}
+
+const AVATARS=['👨‍🚀','👩‍🚀','🤖','👾','🛸','🚀','🪐','⭐','☄️','🌠','🔭','🛰️','🌌','💫','🌙','🔴','🔵','🟡','🟢','🟣'];
+let _selAvatar=AVATARS[0];
+
+function initAvatarPicker(){
+  const grid=document.getElementById('av-grid');
+  if(!grid)return;
+  grid.innerHTML=AVATARS.map(a=>
+    `<div class="av-opt${a===_selAvatar?' sel':''}" onclick="pickAvatar('${a}')" title="${a}">${a}</div>`
+  ).join('');
+}
+function toggleAvatarPicker(){
+  const p=document.getElementById('av-picker');
+  if(!p)return;
+  const showing=p.style.display!=='none';
+  p.style.display=showing?'none':'block';
+  if(!showing) initAvatarPicker();
+}
+function pickAvatar(av){
+  _selAvatar=av;
+  const d=document.getElementById('av-display');
+  if(d) d.textContent=av;
+  initAvatarPicker(); // refresh selection highlights
+}
+
+// ── HOW TO PLAY TOGGLE (setup screen) ─────────────
+function toggleHTP(){
+  const body=document.getElementById('htp-body');
+  const arr=document.getElementById('htp-arr');
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(arr) arr.classList.toggle('open',open);
+}
+
+// ── IN-GAME HELP MODAL ────────────────────────────
+function showHelp(){
+  showModal(`<div class="help-modal">
+    <h3 style="margin-bottom:10px">🚀 How to Play</h3>
+    <div class="help-tabs">
+      <button class="help-tab active" onclick="helpTab(this,'ht-basics')">Basics</button>
+      <button class="help-tab" onclick="helpTab(this,'ht-build')">Building</button>
+      <button class="help-tab" onclick="helpTab(this,'ht-tiles')">Tiles</button>
+      <button class="help-tab" onclick="helpTab(this,'ht-cards')">Dev Cards</button>
+      <button class="help-tab" onclick="helpTab(this,'ht-tips')">Tips</button>
+    </div>
+
+    <div id="ht-basics" class="help-page active">
+      <p style="margin-bottom:8px;font-size:.84em">First to <strong>10 Victory Points</strong> wins.</p>
+      <div class="htp-row"><span class="htp-ico">1️⃣</span><span style="font-size:.82em">Optionally play a Knight card</span></div>
+      <div class="htp-row"><span class="htp-ico">2️⃣</span><span style="font-size:.82em">Roll dice — matching hexes produce resources</span></div>
+      <div class="htp-row"><span class="htp-ico">3️⃣</span><span style="font-size:.82em">Build, trade, buy dev cards</span></div>
+      <div class="htp-row"><span class="htp-ico">4️⃣</span><span style="font-size:.82em">End your turn</span></div>
+      <p style="margin-top:10px;font-size:.78em;color:var(--muted)"><strong style="color:var(--text)">Roll 7 (Gravity Storm):</strong> No resources. Players with 7+ cards discard half. Move the Void marker to block a hex and steal from a player there.</p>
+      <p style="margin-top:8px;font-size:.78em;color:var(--muted)"><strong style="color:var(--text)">Ports:</strong> 3:1 generic, 2:1 specific. Default bank is 4:1.</p>
+    </div>
+
+    <div id="ht-build" class="help-page">
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🛤</span><span style="font-size:.84em"><strong>Lane</strong> — must connect to your network</span><span class="htp-cost">⛽+🪨</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🏠</span><span style="font-size:.84em"><strong>Outpost</strong> — 1VP, must be 2 lanes from any other building</span><span class="htp-cost">⛽🪨💨⚡</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🏙</span><span style="font-size:.84em"><strong>Colony</strong> — upgrade your outpost to 2VP, doubles resource production</span><span class="htp-cost">💎💎💎⚡⚡</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🃏</span><span style="font-size:.84em"><strong>Dev Card</strong> — random draw from the deck</span><span class="htp-cost">💎⚡💨</span></div>
+      <p style="font-size:.76em;color:var(--muted);margin-top:6px">Limits per player: 15 lanes, 5 outposts, 4 colonies.</p>
+    </div>
+
+    <div id="ht-tiles" class="help-page">
+      <div class="htp-tile-grid" style="gap:6px">
+        <div class="htp-tile">🌌 Nebula<br><span style="color:var(--muted);font-size:.85em">⛽ Fuel (×4)</span></div>
+        <div class="htp-tile">☄️ Asteroids<br><span style="color:var(--muted);font-size:.85em">🪨 Titanium (×3)</span></div>
+        <div class="htp-tile">🪐 Gas Giant<br><span style="color:var(--muted);font-size:.85em">💨 Oxygen (×4)</span></div>
+        <div class="htp-tile">⚡ Solar Array<br><span style="color:var(--muted);font-size:.85em">⚡ Energy (×4)</span></div>
+        <div class="htp-tile">💎 Crystal Moon<br><span style="color:var(--muted);font-size:.85em">💎 Crystals (×3)</span></div>
+        <div class="htp-tile">🕳️ Void<br><span style="color:var(--muted);font-size:.85em">No resources (×1)</span></div>
+      </div>
+      <p style="font-size:.76em;color:var(--muted);margin-top:10px">Numbers 6 and 8 (red) produce most often. The Void marker starts on the Void tile.</p>
+    </div>
+
+    <div id="ht-cards" class="help-page">
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">⚔️</span><span style="font-size:.82em"><strong>Knight (×14)</strong> — Move the Void marker, steal a card. 3+ knights = Largest Fleet (+2 VP)</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🛤</span><span style="font-size:.82em"><strong>Lane Builder (×2)</strong> — Place 2 free lanes immediately</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">💫</span><span style="font-size:.82em"><strong>Year of Plenty (×2)</strong> — Take any 2 resources from the supply</span></div>
+      <div class="htp-row" style="margin-bottom:8px"><span class="htp-ico">🌀</span><span style="font-size:.82em"><strong>Monopoly (×2)</strong> — All players give you all of one resource type</span></div>
+      <div class="htp-row"><span class="htp-ico">🏆</span><span style="font-size:.82em"><strong>VP Cards (×5)</strong> — +1 VP each. Hidden until you win!</span></div>
+      <p style="font-size:.76em;color:var(--muted);margin-top:8px">Knights and Lane Builder can be played <em>before</em> rolling. Others only after rolling.</p>
+    </div>
+
+    <div id="ht-tips" class="help-page">
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Settle near 6s and 8s early — they produce most often</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Try to access all 5 resource types — being short on one hurts</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Ports near your high-production tiles are very powerful</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Build lanes early to reach good spots before opponents</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Knights protect you and help claim Largest Fleet</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Keep VP cards secret — spring them for a surprise win!</span></div>
+      <div class="htp-row"><span class="htp-ico">💡</span><span style="font-size:.82em">Don't stockpile resources before a 7 is rolled</span></div>
+    </div>
+
+    <button class="btn btn-cancel" style="width:100%;justify-content:center;margin-top:12px" onclick="closeModal()">Close</button>
+  </div>`);
+}
+function helpTab(btn,pageId){
+  document.querySelectorAll('.help-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.help-page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  const page=document.getElementById(pageId);
+  if(page) page.classList.add('active');
+}
+let _AC, _muted = localStorage.getItem('natac_muted') === '1';
+function getAC(){
+  if(!_AC)_AC=new(window.AudioContext||window.webkitAudioContext)();
+  if(_AC.state==='suspended')_AC.resume();
+  return _AC;
+}
+function toggleSound(){
+  _muted=!_muted;
+  localStorage.setItem('natac_muted', _muted?'1':'0');
+  document.getElementById('b-sound').textContent=_muted?'🔇':'🔊';
+}
+// Initialise button state on load
+window.addEventListener('load',()=>{ const b=document.getElementById('b-sound');if(b)b.textContent=_muted?'🔇':'🔊'; });
+function getAC(){
+  if(!_AC)_AC=new(window.AudioContext||window.webkitAudioContext)();
+  if(_AC.state==='suspended')_AC.resume();
+  return _AC;
+}
+function tone(freq,type,dur,vol,when,dest){
+  const a=getAC(),o=a.createOscillator(),g=a.createGain(),t=when||a.currentTime;
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);
+  g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g);g.connect(dest||a.destination);o.start(t);o.stop(t+dur+.01);
+}
+function noise(dur,freq,q,vol,when){
+  const a=getAC(),buf=a.createBuffer(1,a.sampleRate*dur,a.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*.4));
+  const s=a.createBufferSource();s.buffer=buf;
+  const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=q;
+  const g=a.createGain();g.gain.value=vol;
+  s.connect(f);f.connect(g);g.connect(a.destination);s.start(when||a.currentTime);
+}
+const SFX={
+  roll(){
+    if(_muted)return;
+    try{
+      const ac=getAC(), now=ac.currentTime;
+
+      // One sharp click: short noise burst through a bandpass filter
+      // Simulates a single die impact on a hard surface
+      function dieClick(t, vol, freqHz, decaySecs){
+        const len=Math.ceil(ac.sampleRate*0.045);
+        const buf=ac.createBuffer(1,len,ac.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(len*decaySecs*22));
+        const src=ac.createBufferSource(); src.buffer=buf;
+        // Body resonance: bandpass around the "plastic/wood" frequency
+        const bp=ac.createBiquadFilter(); bp.type='bandpass';
+        bp.frequency.value=freqHz; bp.Q.value=2.5+Math.random()*2;
+        // High cut to remove harshness
+        const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4000;
+        const g=ac.createGain();
+        g.gain.setValueAtTime(vol,t);
+        g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+        src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(ac.destination);
+        src.start(t); src.stop(t+0.07);
+      }
+
+      // Low thud — table resonance when a die lands hard
+      function thud(t, vol){
+        const o=ac.createOscillator(), g=ac.createGain();
+        o.type='triangle';
+        o.frequency.setValueAtTime(110,t);
+        o.frequency.exponentialRampToValueAtTime(38,t+0.09);
+        g.gain.setValueAtTime(vol,t);
+        g.gain.exponentialRampToValueAtTime(0.001,t+0.11);
+        o.connect(g); g.connect(ac.destination);
+        o.start(t); o.stop(t+0.12);
+      }
+
+      // ── PHASE 1: Rolling/tumbling ───────────────────────
+      // Rapid clicks that start dense and slow down as dice settle
+      const rollDur=0.38+Math.random()*0.12; // 380–500 ms of rolling
+      const nClicks=9+Math.floor(Math.random()*5);
+
+      for(let i=0;i<nClicks;i++){
+        // Ease-out timing: clicks start bunched together, then spread out
+        const progress=i/nClicks;
+        const baseT=now + Math.pow(progress,0.55)*rollDur;
+        const jitter=(Math.random()-0.5)*0.022;
+        const t=baseT+jitter;
+
+        // Amplitude: loudest mid-roll, quiet at start and very end
+        const env=Math.sin(Math.PI*Math.pow(progress,0.6))*0.85;
+        const vol=0.08+env*0.28;
+
+        // Frequency varies — plastic dice are ~700-1400 Hz
+        const freq=700+Math.random()*700;
+        dieClick(t, vol, freq, 0.35+Math.random()*0.3);
+
+        // Second die hits slightly offset ~40% of the time
+        if(Math.random()>0.58){
+          dieClick(t+0.012+Math.random()*0.018, vol*0.75,
+                   600+Math.random()*600, 0.3+Math.random()*0.25);
+        }
+      }
+
+      // ── PHASE 2: Final landing impacts ────────────────
+      // Two distinct sharp clicks (one per die) then table resonance
+      const landT=now+rollDur;
+      dieClick(landT,        0.55, 900+Math.random()*300, 0.55);
+      dieClick(landT+0.016,  0.48, 800+Math.random()*350, 0.5);
+      thud(landT+0.008, 0.22);
+
+      // Tiny rattle-out (dice still vibrating)
+      if(Math.random()>0.4)
+        dieClick(landT+0.055, 0.12, 1100+Math.random()*300, 0.25);
+
+    }catch(e){}
+  },
+  place(){
+    if(_muted)return;
+    try{
+      const a=getAC(),now=a.currentTime;
+      tone(105,'triangle',.14,.5,now);
+      tone(880,'sine',.55,.22,now+.05);
+      tone(1108,'sine',.45,.12,now+.13);
+    }catch(e){}
+  },
+  city(){
+    if(_muted)return;
+    try{
+      const a=getAC(),now=a.currentTime;
+      tone(75,'triangle',.18,.55,now);
+      [880,1108,1320].forEach((f,i)=>tone(f,'sine',.65,.18,now+.07+i*.08));
+    }catch(e){}
+  },
+  road(){
+    if(_muted)return;
+    try{tone(280,'square',.07,.2);}catch(e){}
+  },
+  resources(n){
+    if(_muted)return;
+    try{
+      const a=getAC(),now=a.currentTime;
+      for(let i=0;i<Math.min(n,5);i++)tone(500+Math.random()*500,'sine',.18,.13,now+i*.07);
+    }catch(e){}
+  },
+  robber(){
+    if(_muted)return;
+    try{
+      const a=getAC(),now=a.currentTime,o=a.createOscillator(),g=a.createGain();
+      o.type='sawtooth';o.frequency.setValueAtTime(260,now);o.frequency.exponentialRampToValueAtTime(70,now+.45);
+      g.gain.setValueAtTime(.28,now);g.gain.exponentialRampToValueAtTime(.001,now+.5);
+      o.connect(g);g.connect(a.destination);o.start(now);o.stop(now+.52);
+      tone(55,'triangle',.55,.2,now+.05);
+    }catch(e){}
+  },
+  devcard(){
+    if(_muted)return;
+    try{
+      noise(.1,3000,1.5,.28);
+      const a=getAC(),now=a.currentTime;
+      [523,659,784,1047].forEach((f,i)=>tone(f,'sine',.22,.1,now+.06+i*.065));
+    }catch(e){}
+  },
+  win(){
+    if(_muted)return;
+    try{
+      const a=getAC(),now=a.currentTime;
+      [523,659,784,1047,1047,784,659,523].forEach((f,i)=>{
+        const dur=i===7?.9:.18;
+        tone(f,'triangle',dur,.28,now+i*.13);
+      });
+    }catch(e){}
+  },
+  turn(){
+    if(_muted)return;
+    try{tone(1000,'sine',1.4,.18);}catch(e){}
+  }
+};
+
+// ════════════════════════════════════════════════════
+// ANIMATION SYSTEM
+// ════════════════════════════════════════════════════
+let animT=0;
+const floaters=[],sparks=[],confetti=[];
+let _flashHexes=[], _flashStart=0;
+let _lastKnownRoll=null;
+let _rollCounts={};   // local tally — populated via child_added (online) or doRoll (P&P)
+let _rollsRef=null;   // ref to rooms/{code}/rolls
+
+function spawnFloat(x,y,text,col='#c9a84c'){floaters.push({x,y,text,col,born:Date.now()});}
+function spawnSpark(x,y,col){
+  for(let i=0;i<10;i++){const a=i*Math.PI*.2+Math.random()*.4,v=2+Math.random()*3.5;
+    sparks.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,col,born:Date.now(),life:400+Math.random()*300});}
+}
+function spawnConfetti(){
+  const cols=['#e74c3c','#2980b9','#f1c40f','#27ae60','#9b59b6','#e67e22','#1abc9c'];
+  for(let i=0;i<90;i++)confetti.push({x:Math.random()*CW,y:-15-Math.random()*80,
+    vx:(Math.random()-.5)*5,vy:Math.random()*3+2,rot:Math.random()*360,
+    rotV:(Math.random()-.5)*12,w:4+Math.random()*8,h:3+Math.random()*5,
+    col:cols[i%cols.length],born:Date.now(),life:3000+Math.random()*2000});
+}
+
+function drawAnims(){
+  const now=Date.now();
+  // sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const s=sparks[i],a=(now-s.born)/s.life;
+    if(a>=1){sparks.splice(i,1);continue;}
+    s.x+=s.vx;s.y+=s.vy;s.vy+=.1;
+    ctx.globalAlpha=(1-a)*.85;ctx.fillStyle=s.col;
+    ctx.beginPath();ctx.arc(s.x,s.y,3*(1-a*.6),0,Math.PI*2);ctx.fill();
+  }
+  // floaters
+  for(let i=floaters.length-1;i>=0;i--){
+    const f=floaters[i],a=(now-f.born)/1600;
+    if(a>=1){floaters.splice(i,1);continue;}
+    const fy=f.y-48*a;
+    ctx.globalAlpha=(1-a*a);
+    ctx.font='bold 14px Nunito,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=3;ctx.strokeText(f.text,f.x,fy);
+    ctx.fillStyle=f.col;ctx.fillText(f.text,f.x,fy);
+  }
+  // confetti
+  for(let i=confetti.length-1;i>=0;i--){
+    const p=confetti[i],a=(now-p.born)/p.life;
+    if(a>=1||p.y>CH+20){confetti.splice(i,1);continue;}
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.07;p.rot+=p.rotV;
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+    ctx.globalAlpha=Math.min(1,1-Math.max(0,a-.7)/.3);
+    ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+
+// Dice spin animation
+function animateDice(d1,d2,cb){
+  const ov=document.getElementById('dov'),D1=document.getElementById('die1'),D2=document.getElementById('die2');
+  const f=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  ov.classList.add('show');
+  let n=0;
+  const iv=setInterval(()=>{
+    D1.textContent=f[Math.floor(Math.random()*6)+1];
+    D2.textContent=f[Math.floor(Math.random()*6)+1];
+    if(++n>9){
+      clearInterval(iv);
+      D1.textContent=f[d1];D2.textContent=f[d2];
+      D1.classList.remove('spin');D1.offsetHeight;D1.classList.add('spin');
+      D2.classList.remove('spin');D2.offsetHeight;D2.classList.add('spin');
+      setTimeout(()=>{ov.classList.remove('show');cb();},750);
+    }
+  },65);
+}
+
+// ════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════
+const rnd=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+function hexDist(q1,r1,q2,r2){return(Math.abs(q1-q2)+Math.abs(q1+r1-q2-r2)+Math.abs(r1-r2))/2;}
+function ax2px(q,r){return{x:CX+S*SQRT3*(q+r/2),y:CY+S*1.5*r};}
+function crn(cx,cy,sz,i){const a=Math.PI/3*i+Math.PI/6;return{x:cx+sz*Math.cos(a),y:cy+sz*Math.sin(a)};}
+
+// ════════════════════════════════════════════════════
+// BOARD GENERATION
+// ════════════════════════════════════════════════════
+function makeBoard(){
+  const tiles=rnd(TILES);
+  const hexes=HEX_AX.map(([q,r],i)=>{const{x,y}=ax2px(q,r);return{id:i,q,r,x,y,tile:tiles[i],number:null,robber:tiles[i]==='desert',verts:[],edges:[]};});
+  const land=hexes.filter(h=>h.tile!=='void');
+  for(let t=0;t<300;t++){
+    const nums=rnd(NUMBERS);land.forEach((h,i)=>h.number=nums[i]);
+    let ok=true;
+    outer:for(let i=0;i<hexes.length;i++){if(![6,8].includes(hexes[i].number))continue;
+      for(let j=i+1;j<hexes.length;j++){if(![6,8].includes(hexes[j].number))continue;
+        if(hexDist(hexes[i].q,hexes[i].r,hexes[j].q,hexes[j].r)===1){ok=false;break outer;}}}
+    if(ok)break;
+  }
+  return hexes;
+}
+function makeGraph(hexes){
+  const vMap=new Map(),eMap=new Map(),vertices=[],edges=[];
+  const vk=(x,y)=>`${Math.round(x)},${Math.round(y)}`,ek=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
+  for(const h of hexes){
+    const hv=[];
+    for(let i=0;i<6;i++){const{x,y}=crn(h.x,h.y,S,i),k=vk(x,y);
+      if(!vMap.has(k)){const v={id:vertices.length,x,y,owner:null,type:null,port:null,hexes:[],edges:[],verts:[]};vertices.push(v);vMap.set(k,v);}
+      const v=vMap.get(k);if(!v.hexes.includes(h.id))v.hexes.push(h.id);hv.push(v.id);}
+    h.verts=hv;const he=[];
+    for(let i=0;i<6;i++){const a=hv[i],b=hv[(i+1)%6],k=ek(a,b);
+      if(!eMap.has(k)){const e={id:edges.length,v1:a,v2:b,owner:null};edges.push(e);eMap.set(k,e);
+        vertices[a].edges.push(e.id);vertices[b].edges.push(e.id);
+        if(!vertices[a].verts.includes(b))vertices[a].verts.push(b);
+        if(!vertices[b].verts.includes(a))vertices[b].verts.push(a);}
+      he.push(eMap.get(k).id);}
+    h.edges=he;}
+  return{vertices,edges};
+}
+function makePorts(vertices){
+  // Collect all valid outer edges: both vertices on perimeter (< 3 hexes), sharing exactly 1 hex
+  const perimSet=new Set(vertices.filter(v=>v.hexes.length<3).map(v=>v.id));
+  const pe=[];
+  for(const v of vertices){
+    if(!perimSet.has(v.id)) continue;
+    for(const wid of v.verts){
+      if(wid<=v.id||!perimSet.has(wid)) continue;
+      const w=vertices[wid];
+      if(v.hexes.filter(h=>w.hexes.includes(h)).length===1) pe.push([v.id,wid]);
+    }
+  }
+
+  // Greedy selection: no two ports may share a vertex OR be adjacent along the perimeter
+  // "Adjacent" means sharing a perimeter neighbour — ban only perimeter-neighbours of used verts
+  const shuffled=rnd(pe);
+  const chosen=[];
+  const usedVerts=new Set();
+  for(const [a,b] of shuffled){
+    if(usedVerts.has(a)||usedVerts.has(b)) continue;
+    // Check if any PERIMETER neighbour of a or b is already used
+    const aPerimNeighbours=vertices[a].verts.filter(id=>perimSet.has(id));
+    const bPerimNeighbours=vertices[b].verts.filter(id=>perimSet.has(id));
+    const tooClose=[...aPerimNeighbours,...bPerimNeighbours].some(vid=>usedVerts.has(vid));
+    if(tooClose) continue;
+    chosen.push([a,b]);
+    usedVerts.add(a); usedVerts.add(b);
+    if(chosen.length===9) break;
+  }
+  // Fallback with relaxed rules (only vertex overlap check, no gap) — very rarely needed
+  if(chosen.length<9){
+    for(const [a,b] of shuffled){
+      if(usedVerts.has(a)||usedVerts.has(b)) continue;
+      chosen.push([a,b]); usedVerts.add(a); usedVerts.add(b);
+      if(chosen.length===9) break;
+    }
+  }
+  const ty=rnd(PORT_POOL);
+  chosen.forEach(([a,b],i)=>{vertices[a].port=ty[i]; vertices[b].port=ty[i];});
+}
+
+// ════════════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════════════
+let G=null,myIdx=null; // myIdx=null means pass-and-play
+
+function initGame(n,playerDefs){
+  const hexes=makeBoard(),{vertices,edges}=makeGraph(hexes);
+  makePorts(vertices);
+  const players=(playerDefs||Array.from({length:n},(_,i)=>({name:PNAMES[i],color:PCOLORS[i],avatar:AVATARS[i%AVATARS.length]}))).map((pd,i)=>({
+    id:i,name:pd.name,color:pd.color||PCOLORS[i],avatar:pd.avatar||AVATARS[i%AVATARS.length],
+    res:{wood:0,brick:0,sheep:0,wheat:0,ore:0},dev:[],knights:0,vp:0,
+    roads:0,settlements:0,cities:0,hasArmy:false,hasRoad:false,roadLen:0}));
+  // Pick a random first player — setup snake starts here, and they roll first in main
+  const setupStart=Math.floor(Math.random()*n);
+  G={hexes,vertices,edges,players,n,
+    cur:setupStart,        // first settler is random
+    setupStart,            // remembered so nextSetup can restore it
+    phase:'setup1',si:0,sa:'sett',lastSett:null,
+    turn:1,roll:null,rolled:false,deck:rnd([...DEV_DECK]),
+    robber:hexes.findIndex(h=>h.tile==='void'),bmode:null,devPlayed:false,
+    armyOwner:null,armySize:2,roadOwner:null,roadSize:4,freeRoads:0,yapLeft:0,log:[],
+    rollHistory:{2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0},
+    resEarned:players.map(()=>({wood:0,brick:0,sheep:0,wheat:0,ore:0})),
+    pendingTrade:null,
+    pendingDiscards:[]
+  };
+  canvas.onclick=e=>{if(_suppressNextClick){_suppressNextClick=false;return;}if(!_touchMoved)handleClick(e);};
+  addCanvasListeners();
+  startLoop();updateUI();
+  glog(`${G.players[setupStart].name}'s turn – place your first settlement.`);
+}
+
+// ════════════════════════════════════════════════════
+// CANVAS & RENDER LOOP
+// ════════════════════════════════════════════════════
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+
+// ════════════════════════════════════════════════════
+// ZOOM / PAN / MINIMISE
+// ════════════════════════════════════════════════════
+let cam={x:0,y:0,z:1};       // pan offset and zoom scale
+let _panActive=false,_panLast={x:0,y:0};
+let _pinchDist0=0,_pinchCam0=null;
+let _sbMin=false;             // sidebar minimised
+
+const MIN_Z=0.5, MAX_Z=3.5;
+
+function camClamp(){
+  // Keep board roughly centred – allow panning to edges + a margin
+  const margin=60*cam.z;
+  cam.x=Math.max(-CW*(cam.z-1)/2-margin, Math.min(CW*(cam.z-1)/2+margin, cam.x));
+  cam.y=Math.max(-CH*(cam.z-1)/2-margin, Math.min(CH*(cam.z-1)/2+margin, cam.y));
+}
+
+function zoomBoard(factor, pivotX=CW/2, pivotY=CH/2){
+  const nz=Math.max(MIN_Z,Math.min(MAX_Z,cam.z*factor));
+  // Zoom toward pivot point
+  cam.x=(cam.x-pivotX)*nz/cam.z+pivotX;
+  cam.y=(cam.y-pivotY)*nz/cam.z+pivotY;
+  // Correct: x/y store the canvas-space translation
+  cam.x+=pivotX*(1-nz/cam.z);
+  cam.y+=pivotY*(1-nz/cam.z);
+  cam.z=nz;
+  camClamp();
+}
+
+function resetCam(){cam={x:0,y:0,z:1};}
+
+function toggleMin(){
+  _sbMin=!_sbMin;
+  const sb=document.getElementById('sb');
+  const cw=document.getElementById('cwrap');
+  const bm=document.getElementById('b-min');
+  sb.classList.toggle('min',_sbMin);
+  cw.classList.toggle('board-big',_sbMin);
+  bm.textContent=_sbMin?'↑':'↓';
+  bm.title=_sbMin?'Expand panel':'Collapse panel';
+  setTimeout(scaleCanvas,260); // after CSS transition
+}
+
+// Update mini-bar quick buttons to match current state
+function updateMiniBar(){
+  const main=G&&G.phase==='main', myTurn=isMyGo();
+  const broll=document.getElementById('b-mini-roll');
+  const bend=document.getElementById('b-mini-end');
+  if(broll) broll.disabled=!main||!myTurn||(G&&G.rolled);
+  if(bend)  bend.disabled=!main||!myTurn||!(G&&G.rolled)||(G&&(G.bmode==='robber'||G.freeRoads>0));
+  const ms=document.getElementById('mini-status');
+  if(ms&&G){const cp=G.players[G.cur];ms.textContent=`${cp.name}'s turn · ${totalVP(cp)} VP`;}
+}
+
+// Canvas coordinate from screen event, accounting for zoom/pan
+function evPt(e){
+  const r=canvas.getBoundingClientRect();
+  const src=e.touches?e.touches[0]:e;
+  // Screen → CSS canvas coords
+  const cx=(src.clientX-r.left)*(CW/r.width);
+  const cy=(src.clientY-r.top)*(CH/r.height);
+  // CSS canvas coords → world coords (undo camera transform)
+  return{x:(cx-cam.x)/cam.z, y:(cy-cam.y)/cam.z};
+}
+
+// Apply camera transform before drawing, restore after
+function withCam(fn){
+  ctx.save();
+  ctx.translate(cam.x,cam.y);
+  ctx.scale(cam.z,cam.z);
+  fn();
+  ctx.restore();
+}
+
+let _canvasListenersAdded=false;
+function addCanvasListeners(){
+  if(_canvasListenersAdded)return;
+  _canvasListenersAdded=true;
+
+  // ── TOUCH ──
+  let _lastTap=0;
+  canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    _touchMoved=false;
+    if(e.touches.length===1){
+      const t=e.touches[0];
+      _touchStart={x:t.clientX,y:t.clientY};
+      _panActive=true; _panLast={x:t.clientX,y:t.clientY};
+      // Double-tap to zoom
+      const now=Date.now();
+      if(now-_lastTap<280){
+        const r=canvas.getBoundingClientRect();
+        const px=(t.clientX-r.left)*(CW/r.width), py=(t.clientY-r.top)*(CH/r.height);
+        zoomBoard(cam.z>1.5?1/cam.z:2, px, py);
+        _lastTap=0; _panActive=false;
+      } else _lastTap=now;
+    } else if(e.touches.length===2){
+      _panActive=false;
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      _pinchDist0=Math.hypot(dx,dy);
+      _pinchCam0={...cam};
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(e.touches.length===1&&_panActive){
+      const t=e.touches[0];
+      const mdx=t.clientX-_touchStart.x, mdy=t.clientY-_touchStart.y;
+      if(Math.hypot(mdx,mdy)>8) _touchMoved=true; // threshold: 8px = pan, not tap
+      const dx=t.clientX-_panLast.x, dy=t.clientY-_panLast.y;
+      const r=canvas.getBoundingClientRect();
+      cam.x+=dx*(CW/r.width);
+      cam.y+=dy*(CH/r.height);
+      camClamp();
+      _panLast={x:t.clientX,y:t.clientY};
+    } else if(e.touches.length===2&&_pinchCam0){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      const dist=Math.hypot(dx,dy);
+      const factor=dist/_pinchDist0;
+      const nz=Math.max(MIN_Z,Math.min(MAX_Z,_pinchCam0.z*factor));
+      cam.z=nz; cam.x=_pinchCam0.x; cam.y=_pinchCam0.y;
+      camClamp();
+      _touchMoved=true;
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchend',e=>{
+    if(e.changedTouches.length>0&&!_touchMoved&&_panActive){
+      handleClick(e.changedTouches[0]);
+      _suppressNextClick=true; // prevent the ghost onclick that follows touchend on mobile
+    }
+    if(e.touches.length===0){ _panActive=false; _pinchCam0=null; }
+  });
+
+  // ── MOUSE (desktop pan with drag) ──
+  canvas.addEventListener('mousedown',e=>{
+    if(e.button===1||(e.button===0&&e.altKey)){// middle-click or alt+drag to pan
+      _panActive=true; _panLast={x:e.clientX,y:e.clientY};
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!_panActive)return;
+    const r=canvas.getBoundingClientRect();
+    cam.x+=(e.clientX-_panLast.x)*(CW/r.width);
+    cam.y+=(e.clientY-_panLast.y)*(CH/r.height);
+    camClamp(); _panLast={x:e.clientX,y:e.clientY};
+  });
+  window.addEventListener('mouseup',()=>{_panActive=false;});
+
+  // ── MOUSE WHEEL zoom ──
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const r=canvas.getBoundingClientRect();
+    const px=(e.clientX-r.left)*(CW/r.width), py=(e.clientY-r.top)*(CH/r.height);
+    zoomBoard(e.deltaY<0?1.12:1/1.12, px, py);
+  },{passive:false});
+}
+
+function startLoop(){
+  if(_loopRunning)return;_loopRunning=true;
+  (function loop(){animT=Date.now();renderFull();requestAnimationFrame(loop);})();
+}
+
+function renderFull(){
+  if(!G)return;
+  try{
+    drawOcean();
+    withCam(()=>{
+      drawPorts();
+      G.hexes.forEach(drawHex);
+      drawHints();
+      // Flash hexes that just produced on this roll
+      if(_flashHexes.length){
+        const age=(animT-_flashStart)/900;
+        if(age<1){
+          const a=age<0.35?age/0.35:(1-age)/0.65;
+          _flashHexes.forEach(hid=>{
+            const h=G.hexes[hid];if(!h)return;
+            hexPath(h,0);
+            ctx.fillStyle=`rgba(255,240,100,${(a*.6).toFixed(3)})`;ctx.fill();
+            ctx.strokeStyle=`rgba(255,220,0,${(a*.9).toFixed(3)})`;ctx.lineWidth=4;ctx.stroke();
+          });
+        } else _flashHexes=[];
+      }
+      G.edges.filter(e=>e.owner!=null).forEach(drawRoad);
+      G.vertices.filter(v=>v.type).forEach(drawBuilding);
+      drawRobber();
+    });
+    drawAnims();
+  }catch(err){
+    // Never let a draw error kill the animation loop — just log and carry on
+    console.warn('renderFull error:',err);
+    ctx.restore(); // in case transform stack was left dirty
+  }
+}
+
+// ── OCEAN (animated) ─────────────────────────────
+// Pre-generate star positions so they're stable frame-to-frame
+const STARS=(()=>{const s=[];for(let i=0;i<160;i++)s.push([Math.random()*680,Math.random()*640,Math.random()*.9+.1,Math.random()*3000]);return s;})();
+function drawOcean(){
+  // Deep space background
+  const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,500);
+  bg.addColorStop(0,'#0a0e1c');bg.addColorStop(.6,'#050810');bg.addColorStop(1,'#020408');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,CW,CH);
+  // Nebula glow patches
+  [[120,80,'rgba(40,0,80,.18)'],[480,200,'rgba(0,30,100,.15)'],[300,500,'rgba(80,0,60,.12)'],
+   [80,400,'rgba(0,60,120,.1)'],[560,100,'rgba(60,0,100,.12)']].forEach(([nx,ny,nc])=>{
+    const ng=ctx.createRadialGradient(nx,ny,10,nx,ny,110);
+    ng.addColorStop(0,nc);ng.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=ng;ctx.fillRect(0,0,CW,CH);
+  });
+  // Stars — twinkle via sin wave keyed to each star's phase
+  STARS.forEach(([sx,sy,base,phase])=>{
+    const br=base*.5+base*.5*Math.abs(Math.sin(animT/900+phase));
+    ctx.fillStyle=`rgba(200,210,255,${br.toFixed(2)})`;
+    const r=br>.7?.9:.55;
+    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+  });
+}
+
+// ── HEX (terrain + number token) ─────────────────
+function hexPath(h,inset){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){const{x,y}=crn(h.x,h.y,S-inset,i);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.closePath();
+}
+function drawHex(h){
+  ctx.save();hexPath(h,1.5);ctx.clip();
+  // Base gradient
+  const G2=ctx.createRadialGradient(h.x-S*.12,h.y-S*.15,2,h.x,h.y,S*1.05);
+  const GRAD={
+    nebula:    ['#8040c0','#2a0860'],   // purple nebula
+    asteroids: ['#6a5a48','#28201a'],   // rocky grey-brown
+    gasplanet: ['#20a0c0','#0a3050'],   // cyan-blue gas giant
+    solararray:['#f0c820','#805000'],   // golden solar panels
+    crystalmoon:['#60c0e8','#18405a'],  // icy blue crystal
+    void:      ['#080810','#000000'],   // pure black hole
+  };
+  const[c0,c1]=GRAD[h.tile]||['#888','#444'];
+  G2.addColorStop(0,c0);G2.addColorStop(1,c1);ctx.fillStyle=G2;ctx.fill();
+  drawTerrain(h);
+  ctx.restore();
+  // Border
+  hexPath(h,1.5);ctx.strokeStyle='rgba(30,80,160,.7)';ctx.lineWidth=2;ctx.stroke();
+  // Subtle inner glow
+  hexPath(h,2);ctx.strokeStyle='rgba(80,160,255,.08)';ctx.lineWidth=1.5;ctx.stroke();
+    // Number token — glowing holographic disc
+    if(h.number){
+      const red=h.number===6||h.number===8;
+      const pulse=red?(.88+.12*Math.sin(animT/350)):(.95+.05*Math.sin(animT/800));
+      const res=TILE_RES[h.tile];
+      ctx.save();ctx.translate(h.x,h.y);ctx.scale(pulse,pulse);
+      // Outer glow
+      if(red){
+        const og=ctx.createRadialGradient(0,0,14,0,0,24);
+        og.addColorStop(0,'rgba(255,80,0,.3)');og.addColorStop(1,'rgba(255,80,0,0)');
+        ctx.fillStyle=og;ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();
+      }
+      // Disc
+      ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);
+      const tg=ctx.createRadialGradient(-4,-4,1,0,0,17);
+      tg.addColorStop(0,red?'rgba(255,160,100,.95)':'rgba(60,120,255,.9)');
+      tg.addColorStop(1,red?'rgba(140,30,0,.9)':'rgba(10,30,100,.9)');
+      ctx.fillStyle=tg;ctx.fill();
+      // Rim
+      ctx.strokeStyle=red?'rgba(255,100,40,.9)':'rgba(80,160,255,.7)';ctx.lineWidth=1.5;ctx.stroke();
+      // Scan-line shimmer
+      ctx.strokeStyle=`rgba(255,255,255,${(.08+.04*Math.sin(animT/300)).toFixed(3)})`;ctx.lineWidth=1;
+      for(let ly=-14;ly<14;ly+=5){ctx.beginPath();ctx.moveTo(-Math.sqrt(Math.max(0,289-ly*ly)),ly);ctx.lineTo(Math.sqrt(Math.max(0,289-ly*ly)),ly);ctx.stroke();}
+      // Resource emoji
+      if(res){ctx.font='9px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(RES_ICO[res],0,-6);}
+      // Number
+      ctx.fillStyle=red?'#ffddcc':'#c8e8ff';
+      ctx.font=`bold ${res?'11':'13'}px Nunito,sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(h.number,0,res?4:0);
+      // Probability dots
+      const dots=h.number<=7?h.number-1:13-h.number;
+      ctx.fillStyle=red?'#ff6030':'#60a8ff';
+      for(let d=0;d<dots;d++){ctx.beginPath();ctx.arc(-(dots-1)*2.8+d*5.6,13,1.6,0,Math.PI*2);ctx.fill();}
+      ctx.restore();
+    }
+} // end drawHex
+
+// ── TERRAIN DETAILS ───────────────────────────────
+// Terrain fills the whole hex — the number token overlaps it at centre,
+// which is fine because the token has an opaque background.
+function drawTerrain(h){
+  const{x,y}=h;
+  switch(h.tile){
+    case'nebula':      drawNebula(x,y); break;
+    case'asteroids':   drawAsteroids(x,y); break;
+    case'gasplanet':   drawGasPlanet(x,y); break;
+    case'solararray':  drawSolarArray(x,y); break;
+    case'crystalmoon': drawCrystalMoon(x,y); break;
+    case'void':        drawVoid(x,y); break;
+  }
+}
+
+// ── NEBULA (Fuel) ─────────────────────────────────
+function drawNebula(cx,cy){
+  const t=animT/2400;
+  // Swirling gas clouds
+  const clouds=[
+    [cx-12,cy-10,22,16,'rgba(140,60,200,.5)'],
+    [cx+14,cy-6, 18,14,'rgba(80,40,180,.45)'],
+    [cx-6, cy+12,20,13,'rgba(160,80,220,.4)'],
+    [cx+8, cy+4, 16,11,'rgba(100,50,200,.35)'],
+    [cx-16,cy+4, 14,10,'rgba(120,60,180,.4)'],
+  ];
+  clouds.forEach(([x,y,rx,ry,col],i)=>{
+    const ox=Math.sin(t+i*1.3)*3, oy=Math.cos(t*1.2+i)*2;
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.ellipse(x+ox,y+oy,rx,ry,i*.4+t*.1,0,Math.PI*2);ctx.fill();
+  });
+  // Stars scattered through nebula
+  for(let i=0;i<10;i++){
+    const sx=cx-32+i*7+Math.sin(i*1.7)*4, sy=cy-20+Math.cos(i*2.3)*16;
+    const br=.4+.6*Math.abs(Math.sin(animT/600+i*0.8));
+    ctx.fillStyle=`rgba(255,220,255,${br.toFixed(2)})`;
+    ctx.beginPath();ctx.arc(sx,sy,.8+i%2*.6,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ── ASTEROIDS (Titanium) ──────────────────────────
+function drawAsteroids(cx,cy){
+  function asteroid(x,y,r,angle,col){
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+    ctx.fillStyle=col;ctx.beginPath();
+    const pts=7;
+    for(let i=0;i<pts;i++){
+      const a=i/pts*Math.PI*2, jag=r*(.75+Math.sin(i*2.1)*.25);
+      i?ctx.lineTo(Math.cos(a)*jag,Math.sin(a)*jag):ctx.moveTo(Math.cos(a)*jag,Math.sin(a)*jag);
+    }
+    ctx.closePath();ctx.fill();
+    // Crater
+    ctx.fillStyle='rgba(0,0,0,.25)';
+    ctx.beginPath();ctx.arc(r*.2,-r*.1,r*.3,0,Math.PI*2);ctx.fill();
+    // Highlight
+    ctx.fillStyle='rgba(255,255,255,.15)';
+    ctx.beginPath();ctx.arc(-r*.2,-r*.3,r*.2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  asteroid(cx-14,cy+12,13, .3,'#5a4e3c');
+  asteroid(cx+16,cy+8,  10, .9,'#4e4438');
+  asteroid(cx-2, cy-12,  9,-.4,'#544a3e');
+  asteroid(cx+6, cy-4,   7, .6,'#48403a');
+  asteroid(cx-20,cy-4,   7,1.1,'#524840');
+  // Floating debris dots
+  [[cx+22,cy-14],[cx-18,cy+20],[cx+4,cy+24]].forEach(([ax,ay])=>{
+    ctx.fillStyle='rgba(180,160,130,.6)';
+    ctx.beginPath();ctx.arc(ax,ay,2.5,0,Math.PI*2);ctx.fill();
+  });
+}
+
+// ── GAS GIANT (Oxygen) ────────────────────────────
+function drawGasPlanet(cx,cy){
+  const t=animT/3000;
+  // Planet body
+  const pg=ctx.createRadialGradient(cx-8,cy-12,4,cx,cy,30);
+  pg.addColorStop(0,'#60d0e8');pg.addColorStop(.5,'#1890b8');pg.addColorStop(1,'#084868');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(cx,cy,28,0,Math.PI*2);ctx.fill();
+  // Atmospheric bands
+  const bands=[
+    [cy-10,4,'rgba(80,200,220,.35)'],[cy-2,5,'rgba(30,120,160,.3)'],
+    [cy+6,4,'rgba(100,200,240,.25)'],[cy+14,3,'rgba(20,100,140,.3)'],
+  ];
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,28,0,Math.PI*2);ctx.clip();
+  bands.forEach(([by,h,col])=>{
+    const shift=Math.sin(t+by*.05)*6;
+    ctx.fillStyle=col;ctx.fillRect(cx-30,by+shift-h/2,60,h);
+  });
+  ctx.restore();
+  // Ring
+  ctx.save();ctx.translate(cx,cy);ctx.scale(1,.28);
+  ctx.strokeStyle='rgba(160,220,255,.45)';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(0,0,36,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='rgba(100,180,220,.25)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(0,0,40,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
+
+// ── SOLAR ARRAY (Energy) ──────────────────────────
+function drawSolarArray(cx,cy){
+  // Sun in background
+  const sg=ctx.createRadialGradient(cx-8,cy-16,2,cx-8,cy-16,18);
+  sg.addColorStop(0,'rgba(255,240,100,.9)');sg.addColorStop(.5,'rgba(255,180,0,.4)');sg.addColorStop(1,'rgba(255,120,0,0)');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx-8,cy-16,18,0,Math.PI*2);ctx.fill();
+  // Solar panel arrays — grid of panels
+  const panels=[
+    [cx-20,cy+4],[cx-8,cy+4],[cx+4,cy+4],[cx+16,cy+4],
+    [cx-20,cy+14],[cx-8,cy+14],[cx+4,cy+14],[cx+16,cy+14],
+  ];
+  panels.forEach(([px,py])=>{
+    ctx.fillStyle='#1a2878';ctx.fillRect(px,py,10,8);
+    // Panel highlight grid
+    ctx.strokeStyle='rgba(60,140,255,.6)';ctx.lineWidth=.8;
+    ctx.strokeRect(px,py,10,8);
+    ctx.beginPath();ctx.moveTo(px+5,py);ctx.lineTo(px+5,py+8);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(px,py+4);ctx.lineTo(px+10,py+4);ctx.stroke();
+    // Glint
+    const glint=.3+.7*Math.abs(Math.sin(animT/800+(px+py)*.02));
+    ctx.fillStyle=`rgba(100,180,255,${glint.toFixed(2)})`;
+    ctx.fillRect(px+1,py+1,3,2);
+  });
+  // Support struts
+  ctx.strokeStyle='rgba(120,140,180,.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cx-20,cy+4);ctx.lineTo(cx+26,cy+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-20,cy+14);ctx.lineTo(cx+26,cy+14);ctx.stroke();
+}
+
+// ── CRYSTAL MOON (Crystals) ───────────────────────
+function drawCrystalMoon(cx,cy){
+  // Moon surface
+  const mg=ctx.createRadialGradient(cx-6,cy-8,3,cx,cy,28);
+  mg.addColorStop(0,'#a8d8f0');mg.addColorStop(.6,'#4080a8');mg.addColorStop(1,'#183058');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.arc(cx,cy,26,0,Math.PI*2);ctx.fill();
+  // Craters
+  [[cx-10,cy+8,7],[cx+12,cy+4,5],[cx-4,cy-10,4]].forEach(([kx,ky,kr])=>{
+    ctx.fillStyle='rgba(0,20,60,.35)';ctx.beginPath();ctx.arc(kx,ky,kr,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(150,200,240,.25)';ctx.lineWidth=1;ctx.stroke();
+  });
+  // Crystal formations sticking up from surface
+  function crystal(x,y,h,w,col){
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-w,y+h);ctx.lineTo(x+w,y+h);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.35)';
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-w*.3,y+h*.6);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill();
+  }
+  crystal(cx-8,cy-16,18,5,'rgba(100,200,255,.8)');
+  crystal(cx+4,cy-12,14,4,'rgba(140,220,255,.75)');
+  crystal(cx-2,cy-10,12,3,'rgba(80,180,240,.7)');
+  crystal(cx+14,cy-8,10,3,'rgba(120,210,255,.65)');
+  crystal(cx-16,cy-6, 9,3,'rgba(90,190,240,.6)');
+}
+
+// ── VOID / BLACK HOLE ─────────────────────────────
+function drawVoid(cx,cy){
+  const t=animT/2000;
+  // Accretion disk (swirling rings)
+  for(let i=4;i>=1;i--){
+    const r=12+i*7, a=.15+i*.05;
+    const dg=ctx.createRadialGradient(cx,cy,r-4,cx,cy,r+4);
+    dg.addColorStop(0,`rgba(255,${100+i*20},0,0)`);
+    dg.addColorStop(.4,`rgba(255,${80+i*15},20,${a})`);
+    dg.addColorStop(1,`rgba(150,0,200,0)`);
+    ctx.fillStyle=dg;ctx.beginPath();ctx.arc(cx,cy,r+4,0,Math.PI*2);ctx.fill();
+  }
+  // Event horizon — pure black circle
+  ctx.fillStyle='#000';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill();
+  // Inner glow edge
+  const ig=ctx.createRadialGradient(cx,cy,10,cx,cy,15);
+  ig.addColorStop(0,'rgba(200,50,255,.4)');ig.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=ig;ctx.beginPath();ctx.arc(cx,cy,15,0,Math.PI*2);ctx.fill();
+  // Lensed stars being pulled in
+  for(let i=0;i<6;i++){
+    const ang=i/6*Math.PI*2+t, r=20+i*3;
+    const sx=cx+Math.cos(ang)*r, sy=cy+Math.sin(ang)*r*.4;
+    ctx.fillStyle=`rgba(200,180,255,${.3+.4*(i%2)})`;
+    ctx.beginPath();ctx.arc(sx,sy,.9,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ── PORTS (jetties) ───────────────────────────────
+const PORT_CLR={
+  '3:1':'#2040a0', wood:'#404000', brick:'#604020',
+  sheep:'#005060', wheat:'#604400', ore:'#402060'
+};
+const PORT_EMJ={'3:1':'🌌', wood:'⛽', brick:'🪨', sheep:'💨', wheat:'⚡', ore:'💎'};
+const PORT_LBL={'3:1':'3:1', wood:'2:1', brick:'2:1', sheep:'2:1', wheat:'2:1', ore:'2:1'};
+
+function rrect(x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function drawPorts(){
+  const drawn=new Set();
+  for(const v of G.vertices){
+    if(!v.port) continue;
+    for(const wid of v.verts){
+      const w=G.vertices[wid];
+      if(!w.port||w.port!==v.port) continue;
+      const key=v.id<wid?`${v.id}-${wid}`:`${wid}-${v.id}`;
+      if(drawn.has(key)) continue;
+      drawn.add(key);
+
+      // Find the shared land hex to determine outward direction
+      const sharedId=v.hexes.find(hid=>w.hexes.includes(hid));
+      if(sharedId===undefined) continue;
+      const hex=G.hexes[sharedId];
+
+      // Edge midpoint and outward unit vector (from hex centre through edge midpoint)
+      const mx=(v.x+w.x)/2, my=(v.y+w.y)/2;
+      const ddx=mx-hex.x, ddy=my-hex.y;
+      const dlen=Math.sqrt(ddx*ddx+ddy*ddy)||1;
+      const nx=ddx/dlen, ny=ddy/dlen;   // outward normal
+
+      const JLEN=S*0.46; // jetty length extending into ocean
+
+      // Outer pier corners (V1→P1, V2→P2)
+      const p1x=v.x+nx*JLEN, p1y=v.y+ny*JLEN;
+      const p2x=w.x+nx*JLEN, p2y=w.y+ny*JLEN;
+      const pmx=(p1x+p2x)/2, pmy=(p1y+p2y)/2; // outer midpoint (sign goes here)
+
+      const col=PORT_CLR[v.port]||'#8b6510';
+      const colLight=col+'cc';
+
+      // ── Draw wooden jetty ──
+      ctx.lineCap='round';ctx.lineJoin='round';
+
+      // Water shadow under jetty
+      ctx.strokeStyle='rgba(0,0,0,.28)';ctx.lineWidth=11;
+      ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(p1x,p1y);ctx.lineTo(p2x,p2y);ctx.lineTo(w.x,w.y);ctx.stroke();
+
+      // Side rails (the two main beams)
+      ctx.strokeStyle=col;ctx.lineWidth=5;
+      ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(p1x,p1y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(w.x,w.y);ctx.lineTo(p2x,p2y);ctx.stroke();
+
+      // Deck planks (3 cross-planks between rails)
+      ctx.strokeStyle=colLight;ctx.lineWidth=3;
+      for(let t=0.2;t<=0.95;t+=0.35){
+        const lx=v.x+t*(p1x-v.x), ly=v.y+t*(p1y-v.y);
+        const rx=w.x+t*(p2x-w.x), ry=w.y+t*(p2y-w.y);
+        ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(rx,ry);ctx.stroke();
+      }
+
+      // Inner shore edge (at the hex boundary)
+      ctx.strokeStyle=col;ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(w.x,w.y);ctx.stroke();
+
+      // Outer platform beam
+      ctx.strokeStyle=col;ctx.lineWidth=5;
+      ctx.beginPath();ctx.moveTo(p1x,p1y);ctx.lineTo(p2x,p2y);ctx.stroke();
+
+      // Pier posts (small circles at the four corners)
+      ctx.fillStyle='#5a3808';
+      [v,{x:w.x,y:w.y},{x:p1x,y:p1y},{x:p2x,y:p2y}].forEach(pt=>{
+        ctx.beginPath();ctx.arc(pt.x,pt.y,3.5,0,Math.PI*2);ctx.fill();
+      });
+
+      // ── Harbour sign (on outer platform midpoint) ──
+      const sw=26, sh=20;
+      ctx.save();
+      // Rotate sign to face outward
+      ctx.translate(pmx,pmy);
+      const ang=Math.atan2(ny,nx);
+      ctx.rotate(ang+Math.PI/2);
+
+      // Sign shadow
+      ctx.fillStyle='rgba(0,0,0,.35)';
+      rrect(-sw/2+1,-sh/2+2,sw,sh,4);ctx.fill();
+
+      // Sign background
+      ctx.fillStyle=col;
+      rrect(-sw/2,-sh/2,sw,sh,4);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;
+      rrect(-sw/2,-sh/2,sw,sh,4);ctx.stroke();
+
+      // Emoji resource icon
+      ctx.font='9px serif';ctx.fillStyle='#fff';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(PORT_EMJ[v.port]||'⚓',0,-3.5);
+
+      // Ratio
+      ctx.font='bold 6px Nunito,sans-serif';ctx.fillStyle='#fff';
+      ctx.fillText(PORT_LBL[v.port],0,5.5);
+
+      ctx.restore();
+    }
+  }
+}
+
+// ── HINTS (pulsing) ───────────────────────────────
+function drawHints(){
+  const cp=G.players[G.cur];
+  const inS=G.phase==='setup1'||G.phase==='setup2';
+  const showS=G.bmode==='sett'||(inS&&G.sa==='sett');
+  const showR=G.bmode==='road'||G.freeRoads>0||(inS&&G.sa==='road');
+  const pulse=.55+.45*Math.sin(animT/220);
+  const hex2=(c,a)=>c+(Math.floor(a*255).toString(16).padStart(2,'0'));
+
+  if(showS)G.vertices.forEach(v=>{if(!canSett(v.id))return;
+    ctx.beginPath();ctx.arc(v.x,v.y,13,0,Math.PI*2);
+    ctx.fillStyle=hex2(cp.color,pulse*.55);ctx.fill();
+    ctx.strokeStyle=cp.color;ctx.lineWidth=2.5;ctx.stroke();});
+  if(showR)G.edges.forEach(e=>{if(!canRoad(e.id))return;
+    const v1=G.vertices[e.v1],v2=G.vertices[e.v2],mx=(v1.x+v2.x)/2,my=(v1.y+v2.y)/2;
+    ctx.beginPath();ctx.arc(mx,my,8,0,Math.PI*2);
+    ctx.fillStyle=hex2(cp.color,pulse*.55);ctx.fill();
+    ctx.strokeStyle=cp.color;ctx.lineWidth=2;ctx.stroke();});
+  if(G.bmode==='city')G.vertices.forEach(v=>{if(v.type!=='sett'||v.owner!==G.cur)return;
+    ctx.beginPath();ctx.arc(v.x,v.y,15,0,Math.PI*2);
+    ctx.fillStyle=hex2(cp.color,pulse*.55);ctx.fill();
+    ctx.strokeStyle=cp.color;ctx.lineWidth=2.5;ctx.stroke();});
+  if(G.bmode==='robber')G.hexes.forEach(h=>{if(h.id===G.robber)return;
+    hexPath(h,1.5);
+    ctx.strokeStyle=`rgba(220,50,50,${(.6+.4*pulse).toFixed(2)})`;ctx.lineWidth=3;ctx.stroke();});
+}
+
+// ── ROADS ─────────────────────────────────────────
+function drawRoad(e){
+  const v1=G.vertices[e.v1],v2=G.vertices[e.v2],p=G.players[e.owner];
+  const pulse=.6+.4*Math.abs(Math.sin(animT/700+e.id*.5));
+  // Outer glow
+  ctx.beginPath();ctx.moveTo(v1.x,v1.y);ctx.lineTo(v2.x,v2.y);
+  ctx.strokeStyle=p.color.replace(')',`,${(pulse*.25).toFixed(2)})`).replace('rgb','rgba');
+  ctx.lineWidth=12;ctx.lineCap='round';ctx.stroke();
+  // Core beam
+  ctx.strokeStyle=p.color;ctx.lineWidth=3.5;ctx.stroke();
+  // Energy shimmer
+  ctx.strokeStyle=`rgba(255,255,255,${(pulse*.35).toFixed(2)})`;ctx.lineWidth=1.2;ctx.stroke();
+}
+
+// ── BUILDINGS ─────────────────────────────────────
+function drawBuilding(v){
+  const p=G.players[v.owner];
+  ctx.save();ctx.translate(v.x,v.y);
+  if(v.type==='city'){
+    // Space Colony: central dome with two side modules
+    const col=p.color, dark=darken(p.color,.55);
+    // Base platform
+    ctx.fillStyle=dark;ctx.fillRect(-14,4,28,6);
+    // Side modules
+    ctx.fillStyle=dark;ctx.fillRect(-14,0,9,6);ctx.fillRect(5,0,9,6);
+    ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(-14,0,9,2);ctx.fillRect(5,0,9,2);
+    // Central dome
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(0,-2,11,Math.PI,0);ctx.rect(-11,-2,22,8);ctx.fill();
+    // Dome shine
+    ctx.fillStyle='rgba(255,255,255,.2)';
+    ctx.beginPath();ctx.arc(-3,-4,5,Math.PI,-.2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(-2,-3,4,2.5,-.3,Math.PI,0);ctx.fill();
+    // Antenna
+    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(0,-18);ctx.stroke();
+    ctx.fillStyle='rgba(255,60,60,.9)';ctx.beginPath();ctx.arc(0,-18,1.5,0,Math.PI*2);ctx.fill();
+  } else {
+    // Space Outpost: simple dome module
+    const col=p.color, dark=darken(p.color,.6);
+    ctx.fillStyle=dark;ctx.fillRect(-9,3,18,5);
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(0,0,9,Math.PI,0);ctx.rect(-9,0,18,5);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.18)';
+    ctx.beginPath();ctx.ellipse(-2,-2,3,2,-.2,Math.PI,0);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(0,0,9,Math.PI,0);ctx.moveTo(-9,0);ctx.lineTo(-9,5);ctx.lineTo(9,5);ctx.lineTo(9,0);ctx.stroke();
+  }
+  ctx.restore();
+}
+function darken(hex,f){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;
+}
+function lighten(hex,f){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgb(${Math.min(255,Math.round(r+(255-r)*f))},${Math.min(255,Math.round(g+(255-g)*f))},${Math.min(255,Math.round(b+(255-b)*f))})`;
+}
+
+// ── ROBBER → BLACK HOLE PROBE ─────────────────────
+function drawRobber(){
+  const h=G.hexes[G.robber];
+  const t=animT/600;
+  ctx.save();ctx.translate(h.x+18,h.y+(h.number?4:0));
+  // Spinning accretion disk
+  ctx.save();ctx.scale(1,.35);
+  for(let i=2;i>=0;i--){
+    const r=8+i*3, a=.2+i*.1;
+    ctx.strokeStyle=`rgba(255,${80+i*40},0,${a})`;
+    ctx.lineWidth=2+i;
+    ctx.beginPath();ctx.arc(0,0,r,t+i,t+i+Math.PI*1.6);ctx.stroke();
+  }
+  ctx.restore();
+  // Black sphere
+  const sg=ctx.createRadialGradient(-3,-3,1,0,0,8);
+  sg.addColorStop(0,'#1a0030');sg.addColorStop(1,'#000');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+  // Purple event-horizon glow
+  ctx.strokeStyle=`rgba(180,0,255,${.4+.3*Math.sin(t)})`;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════
+// CLICK HANDLING
+// ════════════════════════════════════════════════════
+// Track touch-move distance so we can ignore taps that were actually pans
+let _touchMoved=false, _touchStart={x:0,y:0}, _suppressNextClick=false;
+
+function handleClick(e){
+  if(!G||G.phase==='done'||!isMyGo()) return;
+  if(_touchMoved) return; // was a pan gesture, not a tap
+  const{x,y}=evPt(e);
+  const inS=G.phase==='setup1'||G.phase==='setup2';
+  if(G.bmode==='robber'){const h=nearHex(x,y,S*.85);if(h&&h.id!==G.robber)placeRobber(h.id);return;}
+  if(inS&&G.sa==='sett'){const v=nearVert(x,y,22);if(v&&canSett(v.id))doSetupSett(v.id);return;}
+  if(inS&&G.sa==='road'){const e2=nearEdge(x,y,24);if(e2&&canRoad(e2.id))doSetupRoad(e2.id);return;}
+  if(!G.rolled)return;
+  if(G.bmode==='sett'){const v=nearVert(x,y,22);if(v&&canSett(v.id))doSett(v.id);}
+  else if(G.bmode==='road'||G.freeRoads>0){const e2=nearEdge(x,y,24);if(e2&&canRoad(e2.id))doRoad(e2.id);}
+  else if(G.bmode==='city'){const v=nearVert(x,y,22);if(v&&v.type==='sett'&&v.owner===G.cur)doCity(v.id);}
+}
+function nearVert(mx,my,t){let b=null,bd=t;G.vertices.forEach(v=>{const d=Math.hypot(v.x-mx,v.y-my);if(d<bd){bd=d;b=v;}});return b;}
+function nearEdge(mx,my,t){let b=null,bd=t;G.edges.forEach(e=>{const v1=G.vertices[e.v1],v2=G.vertices[e.v2];const d=Math.hypot((v1.x+v2.x)/2-mx,(v1.y+v2.y)/2-my);if(d<bd){bd=d;b=e;}});return b;}
+function nearHex(mx,my,t){let b=null,bd=t;G.hexes.forEach(h=>{const d=Math.hypot(h.x-mx,h.y-my);if(d<bd){bd=d;b=h;}});return b;}
+
+// ════════════════════════════════════════════════════
+// VALIDITY
+// ════════════════════════════════════════════════════
+// Official Catan piece limits per player
+const MAX_ROADS=15, MAX_SETTLEMENTS=5, MAX_CITIES=4;
+
+function canSett(vid){
+  const v=G.vertices[vid];if(v.type)return false;
+  // Piece limit: max 5 settlements (cities use the settlement piece back)
+  const p=G.players[G.cur];
+  if(p.settlements>=MAX_SETTLEMENTS)return false;
+  for(const nb of v.verts)if(G.vertices[nb].type)return false;
+  if(G.phase==='setup1'||G.phase==='setup2')return true;
+  return v.edges.some(eid=>G.edges[eid].owner===G.cur);
+}
+function canRoad(eid){
+  const e=G.edges[eid];if(e.owner!=null)return false;
+  // Piece limit: max 15 roads
+  if(G.players[G.cur].roads>=MAX_ROADS)return false;
+  if((G.phase==='setup1'||G.phase==='setup2')&&G.sa==='road')return e.v1===G.lastSett||e.v2===G.lastSett;
+  for(const vid of[e.v1,e.v2]){const v=G.vertices[vid];
+    if(v.owner===G.cur)return true;
+    if(v.owner!=null)continue;
+    for(const ae of v.edges){if(ae===eid)continue;if(G.edges[ae].owner===G.cur)return true;}}
+  return false;
+}
+
+// ════════════════════════════════════════════════════
+// SETUP PHASE
+// ════════════════════════════════════════════════════
+function doSetupSett(vid){
+  const p=G.players[G.cur];
+  G.vertices[vid].type='sett';G.vertices[vid].owner=G.cur;p.settlements++;p.vp++;G.lastSett=vid;
+  if(G.phase==='setup2'){
+    let got=0;
+    G.vertices[vid].hexes.forEach(hid=>{const res=TILE_RES[G.hexes[hid].tile];if(res){p.res[res]++;got++;}});
+    if(got)SFX.resources(got);
+  }
+  SFX.place();spawnSpark(G.vertices[vid].x,G.vertices[vid].y,p.color);
+  G.sa='road';sync(`${p.name} placed a settlement.`);updateUI();
+}
+function doSetupRoad(eid){
+  SFX.road();const p=G.players[G.cur];G.edges[eid].owner=G.cur;p.roads++;
+  G.sa='sett';nextSetup(`${p.name} placed a road.`);
+}
+function nextSetup(msg){
+  // cur is always (setupStart + si) % n — snake order starting from the random first player
+  const ss=G.setupStart||0;
+  if(G.phase==='setup1'){
+    if(G.si+1<G.n){
+      G.si++; G.cur=(ss+G.si)%G.n;
+    } else {
+      G.phase='setup2'; G.si=G.n-1; G.cur=(ss+G.si)%G.n;
+    }
+  } else {
+    if(G.si>0){
+      G.si--; G.cur=(ss+G.si)%G.n;
+    } else {
+      // Setup complete — first settler (setupStart) goes first, as per standard Catan
+      G.phase='main'; G.cur=ss; G.rolled=false; G.bmode=null; G.sa=null;
+      SFX.turn();
+      sync((msg?msg+' ':'')+'Game begins! '+G.players[ss].name+' goes first!');
+      updateUI();
+      const br=document.getElementById('b-roll');
+      if(br) br.disabled=(ss!==myIdx&&myIdx!==null);
+      const be=document.getElementById('b-end');
+      if(be) be.disabled=true;
+      return;
+    }
+  }
+  SFX.turn();sync(msg||`${G.players[G.cur].name}: place a settlement.`);updateUI();
+}
+
+// ════════════════════════════════════════════════════
+// MAIN GAME
+// ════════════════════════════════════════════════════
+function doRoll(){
+  if(G.phase!=='main'||G.rolled||!isMyGo())return;
+  SFX.roll();
+  const d1=Math.ceil(Math.random()*6),d2=Math.ceil(Math.random()*6),tot=d1+d2;
+  animateDice(d1,d2,()=>{
+    G.roll=tot;G.rolled=true;G.bmode=null;
+    // Dice tracking: push to atomic Firebase child (online) or count directly (P&P)
+    // G.rollHistory is NOT used for counting — it gets overwritten by Firebase syncs
+    if(myIdx===null){
+      _rollCounts[tot]=(_rollCounts[tot]||0)+1;
+    } else if(roomRef){
+      try{ roomRef.child('rolls').push(tot); }catch(e){}
+    }
+    let msg=`${G.players[G.cur].name} rolled ${tot}!`;
+    if(tot===7){
+      SFX.robber(); msg+=' Robber!';
+      // Collect players who must discard (>=7 cards)
+      const mustDiscard=G.players.filter(p=>RES.reduce((s,r)=>s+p.res[r],0)>=7)
+        .map(p=>({id:p.id,discard:Math.floor(RES.reduce((s,r)=>s+p.res[r],0)/2)}));
+      if(mustDiscard.length>0){
+        G.bmode='robber'; // will be set after discards
+        G.pendingDiscards=mustDiscard; // queue of players who need to discard
+        sync(msg);updateUI();
+        processNextDiscard();
+        return;
+      }
+      G.bmode='robber';
+    }else{
+      let got=0;
+      const activeHexIds=[];
+      G.hexes.forEach(h=>{if(h.number!==tot||h.robber)return;const res=TILE_RES[h.tile];if(!res)return;
+        activeHexIds.push(h.id);
+        h.verts.forEach(vid=>{const v=G.vertices[vid];if(!v.type)return;
+          const amt=v.type==='city'?2:1;
+          G.players[v.owner].res[res]+=amt;got+=amt;
+          if(G.resEarned&&G.resEarned[v.owner]) G.resEarned[v.owner][res]=(G.resEarned[v.owner][res]||0)+amt;
+          spawnFloat(h.x,h.y,`+${amt} ${RES_ICO[res]}`,PCOLORS[v.owner]);});});
+      // Flash producing hexes (visible to all players)
+      if(activeHexIds.length){_flashHexes=activeHexIds;_flashStart=Date.now();}
+      if(got>0)SFX.resources(got);
+      msg+=` Resources collected.`;
+    }
+    sync(msg);updateUI();
+  });
+}
+
+function placeRobber(hid){
+  G.hexes[G.robber].robber=false;G.robber=hid;G.hexes[hid].robber=true;G.bmode=null;
+  const targets=new Set();
+  G.hexes[hid].verts.forEach(vid=>{const v=G.vertices[vid];if(v.owner!=null&&v.owner!==G.cur)targets.add(v.owner);});
+  if(targets.size===1)doSteal(G.cur,[...targets][0]);
+  else if(targets.size>1)showStealModal([...targets]);
+  else{sync('Robber moved.');updateUI();}
+}
+function doSteal(from,victim){
+  const avail=RES.flatMap(r=>Array(G.players[victim].res[r]).fill(r));
+  let msg='Robber moved. ';
+  if(!avail.length)msg+=`${G.players[victim].name} had nothing!`;
+  else{const r=avail[Math.floor(Math.random()*avail.length)];G.players[victim].res[r]--;G.players[from].res[r]++;
+    SFX.devcard();msg+=`${G.players[from].name} stole from ${G.players[victim].name}!`;}
+  closeModal();sync(msg);updateUI();
+}
+
+function build(type){
+  if(G.phase!=='main'||!G.rolled||!isMyGo())return;
+  if(G.bmode===type){cancelBuild();return;}
+  if(!afford(G.players[G.cur],COSTS[type])){glog('Not enough resources!');return;}
+  if(type==='city'&&!G.vertices.some(v=>v.type==='sett'&&v.owner===G.cur)){glog('No settlement to upgrade!');return;}
+  G.bmode=type;glog(`Click board to place ${type==='sett'?'settlement':type}.`);updateUI();
+}
+function cancelBuild(){G.bmode=null;G.freeRoads=0;updateUI();}
+
+function doSett(vid){
+  const p=G.players[G.cur];spend(p,COSTS.sett);
+  G.vertices[vid].type='sett';G.vertices[vid].owner=G.cur;p.settlements++;p.vp++;G.bmode=null;
+  SFX.place();spawnSpark(G.vertices[vid].x,G.vertices[vid].y,p.color);
+  updateRoad();checkWin();sync(`${p.name} built a settlement! (${totalVP(p)} VP)`);updateUI();
+}
+function doCity(vid){
+  const p=G.players[G.cur];
+  if(p.cities>=MAX_CITIES){glog('No city pieces left! (max 4)');return;}
+  spend(p,COSTS.city);
+  G.vertices[vid].type='city';p.settlements--;p.cities++;p.vp++;G.bmode=null;
+  SFX.city();spawnSpark(G.vertices[vid].x,G.vertices[vid].y,p.color);
+  checkWin();sync(`${p.name} built a city! (${totalVP(p)} VP)`);updateUI();
+}
+function doRoad(eid){
+  const p=G.players[G.cur];if(G.freeRoads===0)spend(p,COSTS.road);
+  G.edges[eid].owner=G.cur;p.roads++;SFX.road();
+  let msg;
+  if(G.freeRoads>0){G.freeRoads--;if(!G.freeRoads)G.bmode=null;msg=`Free road placed! ${G.freeRoads} left.`;}
+  else{G.bmode=null;msg=`${p.name} built a road!`;}
+  updateRoad();checkWin();sync(msg);updateUI();
+}
+function buyDev(){
+  if(G.phase!=='main'||!G.rolled||!isMyGo())return;
+  const p=G.players[G.cur];
+  if(!afford(p,COSTS.dev)||!G.deck.length){glog(!G.deck.length?'Deck empty!':'Not enough resources!');return;}
+  spend(p,COSTS.dev);p.dev.push({type:G.deck.pop(),turn:G.turn});
+  SFX.devcard();sync(`${p.name} bought a dev card.`);updateUI();
+}
+function playDev(pid,idx){
+  if(pid!==G.cur||!isMyGo()||G.phase!=='main'||G.devPlayed)return;
+  const p=G.players[pid],c=p.dev[idx];if(!c||c.turn===G.turn)return;
+  const type=c.type;p.dev.splice(idx,1);G.devPlayed=true;SFX.devcard();
+  if(type==='knight'){p.knights++;G.bmode='robber';SFX.robber();checkArmy();sync(`${p.name} played Knight! Move robber.`);}
+  else if(type==='road_build'){G.freeRoads=2;G.bmode='road';sync(`${p.name} played Road Building!`);}
+  else if(type==='year_plenty'){G.yapLeft=2;sync(`${p.name} played Year of Plenty.`);showYoPModal();return;}
+  else if(type==='monopoly'){sync(`${p.name} played Monopoly.`);showMonopModal();return;}
+  else if(type.startsWith('vp_')){p.vp++;checkWin();sync(`${p.name} revealed a VP card!`);}
+  updateUI();
+}
+function openTrade(){
+  if(G.phase!=='main'||!G.rolled||!isMyGo()) return;
+  const p=G.players[G.cur];
+  const others=G.players.filter(q=>q.id!==G.cur);
+  // Build player trade buttons
+  const playerBtns=others.map(q=>`
+    <button class="sbtn2" onclick="startPlayerTrade(${q.id})">
+      <div class="cdot" style="background:${q.color}"></div>
+      Trade with ${q.name}
+      <span style="font-size:.72em;color:var(--muted);margin-left:auto">${RES.reduce((s,r)=>s+q.res[r],0)} cards</span>
+    </button>`).join('');
+  showModal(`<h3>🔄 Trade</h3>
+    <div style="margin-bottom:8px">
+      <button class="sbtn2" onclick="showBankTrade()">🏦 Bank Trade<span style="font-size:.72em;color:var(--muted);margin-left:auto">4:1 (or port rate)</span></button>
+      ${playerBtns}
+    </div>
+    <button class="btn btn-cancel" style="width:100%;justify-content:center" onclick="closeModal()">Cancel</button>`);
+}
+
+// ── BANK TRADE ──────────────────────────────────
+function showBankTrade(){
+  const p=G.players[G.cur];
+  const rate=r=>{let x=4;G.vertices.forEach(v=>{if(v.owner!==G.cur)return;if(v.port==='3:1')x=Math.min(x,3);if(v.port===r)x=2;});return x;};
+  const gO=RES.map(r=>`<option value="${r}">${RES_ICO[r]} ${RES_NAME[r]} — have ${p.res[r]}, rate ${rate(r)}:1</option>`).join('');
+  const rO=RES.map(r=>`<option value="${r}">${RES_ICO[r]} ${RES_NAME[r]}</option>`).join('');
+  showModal(`<h3>🏦 Bank Trade</h3>
+    <label style="font-size:.8em;color:var(--muted)">Give:</label><select id="tg">${gO}</select>
+    <label style="font-size:.8em;color:var(--muted)">Receive:</label><select id="tr">${rO}</select>
+    <div class="mrow">
+      <button class="btn btn-trade" onclick="execBankTrade()" style="justify-content:center">Trade</button>
+      <button class="btn btn-cancel" onclick="openTrade()" style="justify-content:center">← Back</button>
+    </div>`);
+}
+function execBankTrade(){
+  const give=document.getElementById('tg').value, get=document.getElementById('tr').value;
+  if(give===get){glog('Same resource!');return;}
+  const p=G.players[G.cur];
+  let rate=4;
+  G.vertices.forEach(v=>{if(v.owner!==G.cur)return;if(v.port==='3:1')rate=Math.min(rate,3);if(v.port===give)rate=2;});
+  if(p.res[give]<rate){glog(`Need ${rate} ${give}!`);return;}
+  p.res[give]-=rate; p.res[get]++;
+  SFX.resources(1); spawnFloat(CW*.5,CH*.5,`+1 ${RES_ICO[get]}`,PCOLORS[G.cur]);
+  closeModal(); sync(`${p.name}: ${rate} ${give} → 1 ${get}.`); updateUI();
+}
+
+// ── PLAYER TRADE ────────────────────────────────
+let _tradeGive={}, _tradeWant={};
+
+function resPickRow(label,target){
+  const btns=RES.map(r=>`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+      <span style="width:22px;font-size:1.1em">${RES_ICO[r]}</span>
+      <span style="flex:1;font-size:.82em">${RES_NAME[r]}</span>
+      <button onclick="${target}['${r}']=Math.max(0,(${target}['${r}']||0)-1);startPlayerTrade(_tradeTarget,true)" 
+        style="width:26px;height:26px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:5px;cursor:pointer;font-size:1em">−</button>
+      <span id="${target}-${r}" style="width:22px;text-align:center;font-weight:700">0</span>
+      <button onclick="${target}['${r}']=(${target}['${r}']||0)+1;startPlayerTrade(_tradeTarget,true)"
+        style="width:26px;height:26px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:5px;cursor:pointer;font-size:1em">+</button>
+    </div>`).join('');
+  return `<p style="font-size:.76em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">${label}</p>${btns}`;
+}
+
+let _tradeTarget=-1;
+function startPlayerTrade(targetId, refresh=false){
+  if(!refresh){ _tradeGive={}; _tradeWant={}; }
+  _tradeTarget=targetId;
+  const target=G.players[targetId];
+  const giveRows=resPickRow('You give',`_tradeGive`);
+  const wantRows=resPickRow('You want',`_tradeWant`);
+  showModal(`<h3>🤝 Trade with ${target.name}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+      <div>${giveRows}</div><div>${wantRows}</div>
+    </div>
+    <p id="trade-err" style="color:#e74c3c;font-size:.76em;min-height:1em;margin-bottom:6px"></p>
+    <div class="mrow">
+      <button class="btn btn-trade" onclick="proposeTrade()" style="justify-content:center">Propose ✓</button>
+      <button class="btn btn-cancel" onclick="openTrade()" style="justify-content:center">← Back</button>
+    </div>`);
+  // Populate spinners with current values
+  RES.forEach(r=>{
+    const ge=document.getElementById(`_tradeGive-${r}`);
+    const we=document.getElementById(`_tradeWant-${r}`);
+    if(ge) ge.textContent=_tradeGive[r]||0;
+    if(we) we.textContent=_tradeWant[r]||0;
+  });
+}
+
+function proposeTrade(){
+  const p=G.players[G.cur];
+  const giveTotal=RES.reduce((s,r)=>s+(_tradeGive[r]||0),0);
+  const wantTotal=RES.reduce((s,r)=>s+(_tradeWant[r]||0),0);
+  if(giveTotal===0||wantTotal===0){document.getElementById('trade-err').textContent='Must give and want at least 1 resource.';return;}
+  // Check affordability
+  for(const r of RES){
+    if((_tradeGive[r]||0)>p.res[r]){document.getElementById('trade-err').textContent=`You don't have enough ${RES_NAME[r]}.`;return;}
+  }
+  G.pendingTrade={from:G.cur,to:_tradeTarget,give:{..._tradeGive},want:{..._tradeWant},status:'proposed'};
+  closeModal();
+  const gStr=RES.filter(r=>_tradeGive[r]>0).map(r=>`${_tradeGive[r]}${RES_ICO[r]}`).join(' ');
+  const wStr=RES.filter(r=>_tradeWant[r]>0).map(r=>`${_tradeWant[r]}${RES_ICO[r]}`).join(' ');
+  sync(`${p.name} offers ${gStr} for ${wStr} to ${G.players[_tradeTarget].name}.`);
+  updateUI();
+}
+
+function respondTrade(accept){
+  if(!G.pendingTrade||G.pendingTrade.to!==myIdx&&myIdx!==null) return;
+  if(accept){
+    const from=G.players[G.pendingTrade.from], to=G.players[G.pendingTrade.to];
+    // Execute exchange
+    RES.forEach(r=>{
+      const g=G.pendingTrade.give[r]||0, w=G.pendingTrade.want[r]||0;
+      from.res[r]-=g; to.res[r]+=g;
+      to.res[r]-=w; from.res[r]+=w;
+    });
+    SFX.resources(2);
+    const gStr=RES.filter(r=>G.pendingTrade.give[r]>0).map(r=>`${G.pendingTrade.give[r]}${RES_ICO[r]}`).join(' ');
+    const wStr=RES.filter(r=>G.pendingTrade.want[r]>0).map(r=>`${G.pendingTrade.want[r]}${RES_ICO[r]}`).join(' ');
+    G.pendingTrade=null;
+    sync(`✅ Trade accepted! ${from.name} gave ${gStr}, received ${wStr}.`);
+  } else {
+    const fromName=G.players[G.pendingTrade.from].name;
+    G.pendingTrade=null;
+    sync(`❌ Trade declined by ${G.players[myIdx!==null?myIdx:G.pendingTrade?.to||0].name}.`);
+  }
+  hideTradeBanner(); updateUI();
+}
+function vibrate(pattern){try{if(navigator.vibrate)navigator.vibrate(pattern);}catch(e){}}
+
+function endTurn(){
+  if(G.phase!=='main'||!G.rolled||G.bmode==='robber'||G.freeRoads>0||!isMyGo())return;
+  const was=G.players[G.cur].name;
+  G.cur=(G.cur+1)%G.n;G.rolled=false;G.roll=null;G.bmode=null;G.devPlayed=false;G.turn++;
+  // Vibrate for the next player (in pass-and-play everyone's on same device; in online only fires for the right player via updateUI)
+  SFX.turn();sync(`${was} ended turn. ${G.players[G.cur].name}'s turn.`);updateUI();
+}
+
+// ════════════════════════════════════════════════════
+// VICTORY & SPECIAL RULES
+// ════════════════════════════════════════════════════
+function totalVP(p){return p.vp+(p.hasArmy?2:0)+(p.hasRoad?2:0)+((p.dev||[]).filter(c=>c.type.startsWith('vp_')).length);}
+function publicVP(p){return p.vp+(p.hasArmy?2:0)+(p.hasRoad?2:0);} // excludes hidden VP dev cards
+function checkWin(){G.players.forEach(p=>{if(totalVP(p)>=10){G.phase='done';SFX.win();spawnConfetti();setTimeout(()=>showWinModal(p),300);}});}
+function checkArmy(){const p=G.players[G.cur];if(p.knights>G.armySize){if(G.armyOwner!=null&&G.armyOwner!==G.cur)G.players[G.armyOwner].hasArmy=false;G.armyOwner=G.cur;G.armySize=p.knights;p.hasArmy=true;glog(`${p.name} claimed Largest Army!`);checkWin();}}
+function updateRoad(){
+  G.players.forEach(p=>p.roadLen=calcRoad(p.id));
+  const best=G.players.reduce((a,b)=>a.roadLen>b.roadLen?a:b);
+  if(best.roadLen>=5&&best.roadLen>G.roadSize){if(G.roadOwner!=null&&G.roadOwner!==best.id)G.players[G.roadOwner].hasRoad=false;if(G.roadOwner!==best.id){G.roadOwner=best.id;G.roadSize=best.roadLen;best.hasRoad=true;glog(`${best.name} claimed Longest Road! (${best.roadLen})`);checkWin();}}
+}
+function calcRoad(pid){
+  const roads=G.edges.filter(e=>e.owner===pid);
+  if(!roads.length) return 0;
+  let best=0;
+
+  function blocked(vId){
+    const v=G.vertices[vId];
+    return v.owner!==null && v.owner!==pid;
+  }
+
+  function nextV(e,v){return e.v1===v?e.v2:e.v1;}
+
+  function dfs(v,used,len){
+    best=Math.max(best,len);
+    for(const e of roads){
+      if(used.has(e.id)) continue;
+      if(e.v1!==v && e.v2!==v) continue;
+
+      const nv=nextV(e,v);
+      if(blocked(nv)) continue;
+
+      used.add(e.id);
+      dfs(nv,used,len+1);
+      used.delete(e.id);
+    }
+  }
+
+  roads.forEach(e=>{
+    dfs(e.v1,new Set([e.id]),1);
+    dfs(e.v2,new Set([e.id]),1);
+  });
+  return best;
+}
+
+// ════════════════════════════════════════════════════
+// MULTIPLAYER HELPERS
+// ════════════════════════════════════════════════════
+// Are we allowed to act? True for pass-and-play, or when it's our turn online.
+function isMyGo(){return myIdx===null||myIdx===G.cur;}
+
+// Call after every state change: logs locally + pushes to Firebase if online.
+function sync(msg){
+  if(msg) glog(msg);
+  if(stateRef) fbPush();
+}
+
+// ════════════════════════════════════════════════════
+// UI UPDATE
+// ════════════════════════════════════════════════════
+function updateUI(){
+  if(!G)return;
+  const cp=G.players[G.cur],inS=G.phase==='setup1'||G.phase==='setup2';
+  const online=myIdx!==null, myTurn=isMyGo();
+
+  // Status bar text (note: sbar also holds the exit button, so target the inner span)
+  const st=document.getElementById('sbar-txt');
+  if(inS)st.innerHTML=`${G.phase==='setup1'?'Round 1':'Round 2'} &bull; <span style="color:${cp.color}">${cp.name}</span>: place ${G.sa==='sett'?'settlement':'road'}`;
+  else if(G.phase==='main')st.innerHTML=`<span style="color:${cp.color}">${cp.avatar||''} ${cp.name}'s Turn</span> &bull; ${(myIdx===null||myIdx===G.cur)?totalVP(cp):publicVP(cp)} VP &bull; T${G.turn}`;
+  else st.textContent='Game Over';
+
+  // Turn indicator (small non-blocking pill, replaces the old blocking overlay)
+  const ti=document.getElementById('turn-ind');
+  if(ti){
+    const showInd=online&&!myTurn&&G.phase!=='done';
+    ti.textContent=showInd?`⏳ ${cp.name}'s turn`:'';
+    ti.classList.toggle('show',showInd);
+  }
+
+  // Trade banner: show to the recipient of a pending trade offer
+  const tb=document.getElementById('trade-banner');
+  if(G.pendingTrade&&G.pendingTrade.status==='proposed'){
+    const isRecipient=(myIdx===null&&G.pendingTrade.to===G.cur)||(myIdx!==null&&myIdx===G.pendingTrade.to);
+    const isProposer=(myIdx===null&&G.pendingTrade.from===G.cur)||(myIdx!==null&&myIdx===G.pendingTrade.from);
+    if(isRecipient) showTradeBanner(G.pendingTrade);
+    else if(isProposer&&tb) tb.classList.remove('show'); // proposer sees nothing special
+    else if(tb) tb.classList.remove('show');
+  } else {
+    hideTradeBanner();
+    // If trade was just resolved, clear it (only the current player who rolled can clear it)
+    if(G.pendingTrade&&G.pendingTrade.status!=='proposed'&&isMyGo()){
+      G.pendingTrade=null; if(stateRef) fbPush();
+    }
+  }
+
+  // Player cards — compact single-row design
+  document.getElementById('pwrap').innerHTML=G.players.map(p=>{
+    const active=p.id===G.cur;
+    const online=myIdx!==null;
+    const isMe=!online||p.id===myIdx;
+    const vp=isMe?totalVP(p):publicVP(p); // hide VP dev cards from opponents
+    // Your own resources: full breakdown. Others: just total card count (privacy)
+    let resPills;
+    if(isMe){
+      resPills=RES.map(r=>`<span class="res-pill"><span class="ri">${RES_ICO[r]}</span><span class="rn">${p.res[r]}</span></span>`).join('');
+    } else {
+      const total=RES.reduce((s,r)=>s+p.res[r],0);
+      resPills=total>0
+        ?`<span class="res-pill" style="background:rgba(0,0,0,.4);padding:2px 8px"><span class="rn">${total} cards</span></span>`
+        :`<span style="font-size:.65em;color:var(--muted)">no cards</span>`;
+    }
+    // Dev cards
+    const chips=isMe
+      ? p.dev.map((c,i)=>{
+          const can=p.id===G.cur&&G.phase==='main'&&!G.devPlayed&&c.turn<G.turn&&!c.type.startsWith('vp_');
+          return`<span class="dc${can?'':' off'}" onclick="if(${can})playDev(${p.id},${i})">${DEV_LBL[c.type]}</span>`;
+        }).join('')
+      : p.dev.length?`<span class="dc off">🃏 ×${p.dev.length}</span>`:'';
+    const badges=(p.hasArmy?'⚔':'')+(p.hasRoad?'🛤':'');
+    const youLabel=online&&p.id===myIdx?' <span style="font-size:.6em;color:var(--gold);background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:3px;padding:0 3px">YOU</span>':'';
+    return`<div class="pc${active?' active':''}" style="background:${p.color}16;border-color:${active?p.color:'transparent'};border-left-color:${p.color}">
+      <div class="pc-head">
+        <span class="pn" style="color:${p.color}"><span style="margin-right:4px">${p.avatar||'👨‍🚀'}</span>${p.name}${youLabel} <span style="font-size:.8em;opacity:.7">${badges}</span></span>
+        <span class="pvp">⭐${vp}</span>
+      </div>
+      <div class="res-row">${resPills}</div>
+      <div class="pfoot">
+        <span>🏠${p.settlements} 🏙${p.cities} 🛤${p.roadLen||0} ⚔${p.knights}</span>
+        ${p.dev.length?`<span>🃏${p.dev.length}</span>`:''}
+      </div>
+      ${chips?`<div class="dcs">${chips}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Buttons — locked when it's not your turn in online mode
+  const main=G.phase==='main', canAct=main&&G.rolled&&!G.bmode&&!G.freeRoads&&myTurn;
+  const rollWasDisabled=document.getElementById('b-roll')?.disabled;
+  s('b-roll', !main||G.rolled||!myTurn);
+  // Vibrate when roll button just became enabled (turn just started for this player)
+  if(rollWasDisabled&&!document.getElementById('b-roll')?.disabled) vibrate([80,40,80]);
+  const cp2=G.players[myIdx??G.cur];
+  s('b-road', !canAct||!afford(cp2,COSTS.road)||cp2.roads>=MAX_ROADS);
+  s('b-sett', !canAct||!afford(cp2,COSTS.sett)||cp2.settlements>=MAX_SETTLEMENTS);
+  s('b-city', !canAct||!afford(cp2,COSTS.city)||cp2.cities>=MAX_CITIES||cp2.settlements===0);
+  s('b-trade', !canAct);
+  s('b-dev',  !canAct||!afford(G.players[myIdx??G.cur],COSTS.dev)||!G.deck.length);
+  s('b-end',  !main||!G.rolled||G.bmode==='robber'||G.freeRoads>0||!myTurn);
+  document.getElementById('b-cancel').style.display=(myTurn&&G.bmode&&G.bmode!=='robber')?'flex':'none';
+  ['road','sett','city'].forEach(t=>document.getElementById(`b-${t}`).classList.toggle('on',G.bmode===t));
+  updateMiniBar();
+}
+function s(id,dis){document.getElementById(id).disabled=!!dis;}
+function afford(p,cost){return Object.entries(cost).every(([r,n])=>p.res[r]>=n);}
+function spend(p,cost){Object.entries(cost).forEach(([r,n])=>p.res[r]-=n);}
+function glog(msg){
+  if(!G)return;
+  G.log.unshift(msg);
+  if(G.log.length>40)G.log.length=40;
+  const el=document.getElementById('log');
+  if(el)el.innerHTML=G.log.slice(0,14).map(m=>{
+    // Chat entries are prefixed with \x01 (a control char, never typed by users)
+    const isChat=m.startsWith('\x01');
+    const html=isChat?m.slice(1):m;
+    return`<div${isChat?' class="lc"':''}>${html}</div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════════
+function showModal(h){document.getElementById('mc').innerHTML=h;document.getElementById('mbg').classList.add('open');}
+function closeModal(){document.getElementById('mbg').classList.remove('open');}
+function hideTradeBanner(){const b=document.getElementById('trade-banner');if(b)b.classList.remove('show');}
+
+// ── DISCARD MODAL (roll 7) ────────────────────────
+let _discardSelected={};
+function processNextDiscard(){
+  if(!G.pendingDiscards||!G.pendingDiscards.length){
+    // All done — now move robber
+    G.pendingDiscards=[];G.bmode='robber';
+    sync('All discards done. Move the robber.');updateUI();return;
+  }
+  const next=G.pendingDiscards[0];
+  const isMe=(myIdx===null&&G.cur===next.id)||(myIdx===next.id);
+  if(isMe){
+    _discardSelected={};
+    showDiscardModal(next.id,next.discard);
+  }
+  // Non-local players: they'll see the modal when Firebase sends them the pendingDiscards state
+}
+function showDiscardModal(pid,needed){
+  const p=G.players[pid];
+  _discardSelected={};
+  const rows=RES.map(r=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:1.2em;width:24px">${RES_ICO[r]}</span>
+      <span style="flex:1;font-size:.82em">${RES_NAME[r]}</span>
+      <span style="font-size:.8em;color:var(--muted);width:28px">have ${p.res[r]}</span>
+      <button onclick="discardAdj('${r}',-1)" style="width:28px;height:28px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:5px;cursor:pointer">−</button>
+      <span id="disc-${r}" style="width:22px;text-align:center;font-weight:700">0</span>
+      <button onclick="discardAdj('${r}',1)" style="width:28px;height:28px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:5px;cursor:pointer">+</button>
+    </div>`).join('');
+  showModal(`<h3>🦹 Discard Cards — ${p.name}</h3>
+    <p style="color:var(--muted);font-size:.82em;margin-bottom:12px">You have too many cards! Choose <strong style="color:#e74c3c">${needed}</strong> to discard.</p>
+    ${rows}
+    <p id="disc-err" style="color:#e74c3c;font-size:.76em;min-height:1em;margin:6px 0"></p>
+    <button class="btn btn-roll" style="width:100%;justify-content:center;margin-top:4px" onclick="confirmDiscard(${pid},${needed})">Discard →</button>`);
+}
+function discardAdj(r,delta){
+  const p=G.players[G.pendingDiscards[0]?.id];if(!p)return;
+  _discardSelected[r]=Math.max(0,Math.min(p.res[r],(_discardSelected[r]||0)+delta));
+  const el=document.getElementById(`disc-${r}`);if(el)el.textContent=_discardSelected[r]||0;
+}
+function confirmDiscard(pid,needed){
+  const total=RES.reduce((s,r)=>s+(_discardSelected[r]||0),0);
+  if(total!==needed){document.getElementById('disc-err').textContent=`Must discard exactly ${needed} (selected ${total}).`;return;}
+  const p=G.players[pid];
+  RES.forEach(r=>{p.res[r]-=(_discardSelected[r]||0);});
+  G.pendingDiscards.shift(); // remove this player from queue
+  closeModal();
+  sync(`${p.name} discarded ${needed} cards.`);
+  processNextDiscard(); // handle next in queue
+}
+function showTradeBanner(trade){
+  const b=document.getElementById('trade-banner'),d=document.getElementById('tb-detail');
+  if(!b||!d)return;
+  const from=G.players[trade.from];
+  const gStr=RES.filter(r=>trade.give[r]>0).map(r=>`${trade.give[r]}${RES_ICO[r]}`).join(' ');
+  const wStr=RES.filter(r=>trade.want[r]>0).map(r=>`${trade.want[r]}${RES_ICO[r]}`).join(' ');
+  d.textContent=`${from.name} offers ${gStr} for ${wStr}`;
+  b.classList.add('show');
+}
+function showStealModal(targets){
+  const btns=targets.map(t=>{const p=G.players[t],tot=RES.reduce((s,r)=>s+p.res[r],0);
+    return`<button class="sbtn2" onclick="doSteal(${G.cur},${t})"><div class="cdot" style="background:${p.color}"></div>${p.name} — ${tot} cards</button>`;}).join('');
+  showModal(`<h3>🦹 Steal from?</h3><div style="margin-top:10px">${btns}</div>`);
+}
+function showYoPModal(){
+  const picks=RES.map(r=>`<div class="rp" onclick="yapPick('${r}')"><div class="icon">${RES_ICO[r]}</div><span class="lbl">${RES_NAME[r]}</span></div>`).join('');
+  showModal(`<h3>🎁 Year of Plenty</h3><p style="color:var(--muted);font-size:.8em;margin-bottom:4px">Choose ${G.yapLeft}</p><div class="rpick">${picks}</div>`);
+}
+function yapPick(r){G.players[G.cur].res[r]++;G.yapLeft--;SFX.resources(1);
+  spawnFloat(CW*.5,CH*.45,`+1 ${RES_ICO[r]}`,PCOLORS[G.cur]);
+  if(G.yapLeft>0)showYoPModal();else{closeModal();sync(`${G.players[G.cur].name} used Year of Plenty.`);updateUI();}
+}
+function showMonopModal(){
+  const picks=RES.map(r=>`<div class="rp" onclick="doMonop('${r}')"><div class="icon">${RES_ICO[r]}</div><span class="lbl">${RES_NAME[r]}</span></div>`).join('');
+  showModal(`<h3>💰 Monopoly</h3><p style="color:var(--muted);font-size:.8em;margin-bottom:4px">Take all from everyone</p><div class="rpick">${picks}</div>`);
+}
+function doMonop(r){const p=G.players[G.cur];let tot=0;
+  G.players.forEach((q,i)=>{if(i===G.cur)return;tot+=q.res[r];q.res[r]=0;});
+  p.res[r]+=tot;SFX.resources(tot);closeModal();sync(`${p.name} monopoly: +${tot} ${r}!`);updateUI();
+}
+let _winShown=false;
+function showWinModal(p){
+  if(_winShown) return; // guard: checkWin fires on every listener update — only show modal once
+  _winShown=true;
+  // Every player's device calls postToLB — the lbDone transaction ensures only one write goes through
+  if(myIdx!==null) postToLB(p);
+
+  const maxVP=Math.max(...G.players.map(totalVP));
+
+  // ── Player scores ──
+  const scoreRows=G.players.map(pl=>{
+    const vp=totalVP(pl);
+    const pct=maxVP>0?Math.round(vp/maxVP*100):0;
+    const breakdown=[];
+    if(pl.settlements) breakdown.push(`🏠×${pl.settlements}`);
+    if(pl.cities)      breakdown.push(`🏙×${pl.cities}`);
+    if(pl.hasArmy)     breakdown.push('⚔ Lg Army');
+    if(pl.hasRoad)     breakdown.push('🛤 Lg Road');
+    const vpCards=pl.dev.filter(c=>c.type.startsWith('vp_')).length;
+    if(vpCards)        breakdown.push(`🃏×${vpCards}`);
+    return`<div class="score-row">
+      <div class="score-dot" style="background:${pl.color}"></div>
+      <span class="score-name" style="color:${pl.color}">${pl.name}${pl.id===p.id?' 🏆':''}</span>
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%;background:${pl.color}"></div></div>
+      <span class="score-vp">${vp}</span>
+    </div>
+    <div style="font-size:.62em;color:var(--muted);margin:-3px 0 6px 18px">${breakdown.join(' · ')||'—'}</div>`;
+  }).join('');
+
+  // ── Dice distribution ──
+  // _rollCounts is populated locally via child_added (online) or doRoll (P&P)
+  // It is never overwritten by Firebase syncs, unlike G.rollHistory
+  const rolls = Object.keys(_rollCounts).length > 0 ? _rollCounts
+    : (G.rollHistory && !Array.isArray(G.rollHistory) ? G.rollHistory : {});
+  const maxRolls=Math.max(1,...Object.values(rolls).map(Number));
+  const totalRolls=Object.values(rolls).reduce((a,b)=>a+Number(b),0);
+  const diceBarColor=n=>(n===6||n===8)?'#c03020':'#4a80c8';
+  const mostRolled=Object.entries(rolls).sort((a,b)=>Number(b[1])-Number(a[1]))[0];
+  const diceCols=Array.from({length:11},(_,i)=>i+2).map(n=>{
+    const cnt=Number(rolls[n]||0);
+    const hPct=maxRolls>0?Math.round(cnt/maxRolls*100):0;
+    return`<div class="dice-col">
+      <span class="dice-count">${cnt||''}</span>
+      <div class="dice-bar-wrap">
+        <div style="width:80%;border-radius:3px 3px 0 0;background:${diceBarColor(n)};height:${hPct}%;min-height:${cnt?3:0}px;max-height:52px;transition:height .5s"></div>
+      </div>
+      <span class="dice-n" style="color:${n===6||n===8?'#e87060':'var(--muted)'};font-size:.6em">${n}</span>
+    </div>`;
+  }).join('');
+
+  // ── Resource totals ──
+  const resTotals=RES.map(r=>{
+    const total=(G.resEarned||[]).reduce((s,p)=>s+(p[r]||0),0);
+    return`<div class="rt-cell"><span class="rt-ico">${RES_ICO[r]}</span><span class="rt-n">${total}</span><span class="rt-label">${RES_NAME[r]}</span></div>`;
+  }).join('');
+
+  showModal(`<div class="stats-modal">
+    <div class="stats-winner">
+      <div style="font-size:2.6em">🏆</div>
+      <h2 style="font-family:Cinzel,serif;color:${p.color};font-size:1.6em;margin:6px 0 2px">${p.name} Wins!</h2>
+      <p style="color:var(--muted);font-size:.82em">${totalVP(p)} Victory Points · ${G.turn} turns · ${totalRolls} dice rolls</p>
+    </div>
+    <div class="stats-section">
+      <div class="stats-title">Final Scores</div>
+      ${scoreRows}
+    </div>
+    <div class="stats-section">
+      <div class="stats-title">Dice Roll Distribution</div>
+      <div class="dice-grid">${diceCols}</div>
+      <p style="font-size:.65em;color:var(--muted);margin-top:6px;text-align:center">${totalRolls} total rolls · most rolled: ${mostRolled?`${mostRolled[0]} (×${mostRolled[1]})`:'—'}</p>
+    </div>
+    <div class="stats-section">
+      <div class="stats-title">Total Resources Collected</div>
+      <div class="res-totals">${resTotals}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="bg" style="flex:1;padding:11px" onclick="location.reload()">Play Again</button>
+      <button class="bgh" style="flex:1;padding:11px;margin-bottom:0" onclick="closeModal();doExit()">Home</button>
+    </div>
+  </div>`);
+}
+
+// ═══════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════
+const PROFILE_ID=localStorage.getItem('natac_profile_id')||crypto.randomUUID();
+localStorage.setItem('natac_profile_id',PROFILE_ID);
+function sanitizeLBKey(name){
+ return (PROFILE_ID+'_'+name.trim()).replace(/[.#$/\[\]\s]/g,'_').toLowerCase().slice(0,60);
+}
+
+async function postToLB(winner){
+  if(!ensureFBSilent()){ console.warn('[LB] Firebase not ready'); return; }
+  if(!roomRef)         { console.warn('[LB] roomRef is null');    return; }
+  if(!G||!G.players)  { console.warn('[LB] G not ready');         return; }
+  console.log('[LB] postToLB — winner:', winner.name, 'room:', roomCode2);
+  try{
+    // lbDone inside the room prevents duplicate posts from concurrent devices this game
+    const result = await roomRef.child('lbDone').transaction(cur => cur ? undefined : true);
+    if(!result.committed){ console.log('[LB] lbDone already set, skipping'); return; }
+    console.log('[LB] won transaction — writing leaderboard...');
+    const ts  = Date.now();
+    // Top-level /leaderboard path so it isn't scoped to a specific room ID
+    const lbRef = db.ref('leaderboard');
+    for(const pl of G.players){
+      const key = sanitizeLBKey(pl.name);
+      if(!key||key==='unknown'){ console.warn('[LB] bad key for', pl.name); continue; }
+      await lbRef.child(key).transaction(cur => {
+        const c = cur || {name:pl.name,wins:0,games:0};
+        return{name:pl.name, wins:(c.wins||0)+(pl.id===winner.id?1:0), games:(c.games||0)+1, lastPlayed:ts};
+      });
+      console.log('[LB] wrote', pl.name, 'winner=', pl.id===winner.id);
+    }
+    console.log('[LB] done ✓');
+  }catch(e){ console.error('[LB] postToLB failed:', e); }
+}
+
+function openLB(){
+  document.getElementById('s-setup').classList.add('off');
+  document.getElementById('s-lb').classList.remove('off');
+  loadLB();
+}
+function closeLB(){
+  document.getElementById('s-lb').classList.add('off');
+  document.getElementById('s-setup').classList.remove('off');
+}
+
+async function loadLB(){
+  const el=document.getElementById('lb-rows');
+  if(!el) return;
+  if(!ensureFBSilent()){
+    el.innerHTML='<div class="lb-empty">Firebase not configured — online play needed for the leaderboard.</div>';return;
+  }
+  el.innerHTML='<div class="lb-empty">Loading…</div>';
+  try{
+    const snap=await db.ref('leaderboard').orderByChild('wins').limitToLast(50).once('value');
+    const entries=[];
+    snap.forEach(ch=>entries.push(ch.val()));
+    entries.sort((a,b)=>b.wins-a.wins||(b.games-a.games));
+    if(!entries.length){el.innerHTML='<div class="lb-empty">No games recorded yet — play an online game to appear here!</div>';return;}
+    const medals=['🥇','🥈','🥉'];
+    const hdr=`<div class="lb-row hdr"><span>#</span><span>Player</span><span>Wins</span><span>Games</span><span>Win%</span></div>`;
+    const rows=entries.slice(0,20).map((e,i)=>{
+      const pct=e.games>0?Math.round(e.wins/e.games*100):0;
+      const cls=i===0?'top1':i===1?'top2':i===2?'top3':'';
+      const rank=i<3?medals[i]:`${i+1}`;
+      return`<div class="lb-row ${cls}">
+        <span class="lb-rank">${rank}</span>
+        <span class="lb-name">${e.name||'?'}</span>
+        <span class="lb-num" style="color:var(--gold)">${e.wins}</span>
+        <span class="lb-num">${e.games}</span>
+        <span class="lb-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+    el.innerHTML=hdr+rows;
+  }catch(err){el.innerHTML=`<div class="lb-empty">Error loading: ${err.message}</div>`;}
+}
+
+// Quietly check Firebase without showing error in the setup form
+function ensureFBSilent(){
+  if(db) return true;
+  if(!USE_FB||typeof firebase==='undefined') return false;
+  try{if(!firebase.apps.length)firebase.initializeApp(FB_CFG);db=firebase.database();return true;}catch(e){return false;}
+}
+
+// ════════════════════════════════════════════════════
+// SETUP SCREEN & RESPONSIVE
+// ════════════════════════════════════════════════════
+let selN=3;
+document.querySelectorAll('.pbtn').forEach(b=>{
+  b.onclick=(e)=>{e.stopPropagation();document.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');selN=+b.dataset.n;};
+});
+
+function toggleOpt(id){
+  ['join','local'].forEach(x=>{
+    if(x===id) return;
+    document.getElementById(x+'-body').classList.remove('open');
+    document.getElementById(x+'-arr').classList.remove('open');
+    document.getElementById(x+'-arr').textContent='↓';
+  });
+  const body=document.getElementById(id+'-body');
+  const arr=document.getElementById(id+'-arr');
+  const opening=!body.classList.contains('open');
+  body.classList.toggle('open',opening);
+  arr.classList.toggle('open',opening);
+  arr.textContent=opening?'↑':'↓';
+  if(opening&&id==='join') document.getElementById('jcode').focus();
+}
+
+function confirmExit(){
+  showModal(`
+    <h3>Leave Game?</h3>
+    <p style="color:var(--muted);font-size:.88em;margin:10px 0 16px">
+      ${myIdx!==null?'You will leave the online room. Other players can continue.':'The current game will be lost.'}
+    </p>
+    <div class="mrow">
+      <button class="btn btn-end span2" onclick="closeModal()" style="justify-content:center">Keep Playing</button>
+      <button class="btn btn-roll span2" onclick="doExit()" style="justify-content:center;background:#7a1818">Leave →</button>
+    </div>`);
+}
+function doExit(){
+  // Detach all Firebase listeners to avoid ghost updates
+  try{if(stateRef)stateRef.off();}catch(e){}
+  try{if(roomRef)roomRef.off();}catch(e){}
+  try{if(_rollsRef)_rollsRef.off();}catch(e){} _rollsRef=null;
+  try{if(chatRef)chatRef.off();}catch(e){}
+  stateRef=null;roomRef=null;
+  clearSession();
+  teardownChat();
+  // Reset game state
+  G=null;myIdx=null;myIdx2=null;
+  _loopRunning=false;
+  closeModal();
+  document.getElementById('game').style.display='none';
+  document.getElementById('s-lobby').classList.add('off');
+  document.getElementById('s-setup').classList.remove('off');
+  // Clear error text so it doesn't confuse on re-entry
+  document.getElementById('err').textContent='';
+  document.getElementById('sbar-txt').textContent='Loading…';
+}
+
+function startLocal(){
+  document.getElementById('s-setup').classList.add('off');
+  document.getElementById('game').style.display='flex';
+  myIdx=null; _loopRunning=false;
+  _rollCounts={}; _lastKnownRoll=null; _winShown=false;
+  resetCam(); _sbMin=false;
+  const sb=document.getElementById('sb');
+  const cw=document.getElementById('cwrap');
+  if(sb) sb.classList.remove('min');
+  if(cw) cw.classList.remove('board-big');
+  const bm=document.getElementById('b-min');
+  if(bm) bm.textContent='↓';
+  initGame(selN);
+  setupLocalChat();
+  requestAnimationFrame(()=>requestAnimationFrame(scaleCanvas));
+}
+
+function scaleCanvas(){
+  const w=document.getElementById('cwrap');
+  const sc=Math.min(w.clientWidth/CW,w.clientHeight/CH,1);
+  canvas.style.width=Math.floor(CW*sc)+'px';canvas.style.height=Math.floor(CH*sc)+'px';
+}
+window.addEventListener('resize',scaleCanvas);
+window.addEventListener('load',()=>{
+  const warn=document.getElementById('fb-warn');
+  if(warn&&(typeof USE_FB==='undefined'||!USE_FB)) warn.style.display='block';
+  // Auto-fill last session details for quick rejoin
+  const sess=loadSession();
+  if(sess){
+    const pn=document.getElementById('pname'), jc=document.getElementById('jcode');
+    if(pn&&!pn.value) pn.value=sess.name;
+    if(jc&&!jc.value) jc.value=sess.code;
+    // Open the join section
+    const jb=document.getElementById('join-body'), ja=document.getElementById('join-arr');
+    if(jb&&ja){jb.classList.add('open');ja.textContent='↑';}
+  }
+});
+
+// ════════════════════════════════════════════════════
+// OPTIONAL FIREBASE MULTIPLAYER
+// ════════════════════════════════════════════════════
+let db,roomRef,stateRef,roomCode2,myIdx2;
+
+// Initialise Firebase on first use (not on a blind timeout)
+function ensureFB(){
+  if(db) return true;
+  if(!USE_FB){document.getElementById('err').textContent='Firebase not configured — see instructions at top of HTML file.';return false;}
+  if(typeof firebase==='undefined'){document.getElementById('err').textContent='Firebase scripts still loading — try again in a moment.';return false;}
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    db=firebase.database();
+    return true;
+  }catch(e){document.getElementById('err').textContent='Firebase error: '+e.message;return false;}
+}
+
+function toArr(v){if(!v)return[];if(Array.isArray(v))return v;return Object.keys(v).sort((a,b)=>+a-+b).map(k=>v[k]);}
+function serG(g){return JSON.parse(JSON.stringify(g,(k,v)=>v===undefined?null:v));}
+function desG(raw){
+  // Step 1: parse back from JSON, converting Firebase's numeric-keyed objects to arrays (sorted).
+  // IMPORTANT: only convert if keys are contiguous from 0 — this avoids converting
+  // sparse objects like rollHistory {2:3, 8:1} into mangled arrays.
+  const g=JSON.parse(JSON.stringify(raw),(k,v)=>{
+    if(v&&typeof v==='object'&&!Array.isArray(v)){
+      const ks=Object.keys(v);
+      if(ks.length&&ks.every(x=>/^\d+$/.test(x))){
+        const sorted=ks.sort((a,b)=>+a-+b);
+        // Only treat as array if keys start at 0 and are contiguous (0,1,2,...)
+        const isArray=sorted[0]==='0'&&sorted.every((k,i)=>+k===i);
+        if(isArray) return sorted.map(x=>v[x]);
+      }
+    }
+    return v;
+  });
+  // Step 2: Firebase silently drops null values — restore them on all known nullable fields
+  if(g.vertices) g.vertices.forEach(v=>{
+    if(v.owner===undefined) v.owner=null;
+    if(v.type===undefined)  v.type=null;
+    if(v.port===undefined)  v.port=null;
+  });
+  if(g.edges) g.edges.forEach(e=>{if(e.owner===undefined) e.owner=null;});
+  if(g.bmode===undefined)      g.bmode=null;
+  if(g.roll===undefined)       g.roll=null;
+  if(g.lastSett===undefined)   g.lastSett=null;
+  if(g.armyOwner===undefined)  g.armyOwner=null;
+  if(g.roadOwner===undefined)  g.roadOwner=null;
+  if(g.setupStart===undefined) g.setupStart=0; // safe default for games started before this field existed
+  if(!Array.isArray(g.log))    g.log=[];
+  if(!Array.isArray(g.deck))   g.deck=[];
+  // Ensure rollHistory is always a plain object, never null/array
+  if(!g.rollHistory||Array.isArray(g.rollHistory)) g.rollHistory={};
+  if(g.pendingTrade===undefined) g.pendingTrade=null;
+  if(!Array.isArray(g.pendingDiscards)) g.pendingDiscards=[];
+  // Ensure resEarned is an array of resource objects
+  if(!Array.isArray(g.resEarned)||!g.resEarned.length)
+    g.resEarned=(g.players||[]).map(()=>({wood:0,brick:0,sheep:0,wheat:0,ore:0}));
+  // Firebase drops empty arrays — restore them for every player
+  // p.dev=[] becomes null after round-trip; p.dev.map() then throws → updateUI crashes → buttons stay disabled
+  if(Array.isArray(g.players)) g.players.forEach(p=>{
+    if(!Array.isArray(p.dev))         p.dev=[];
+    if(!p.res) p.res={wood:0,brick:0,sheep:0,wheat:0,ore:0};
+    if(typeof p.hasArmy==='undefined') p.hasArmy=false;
+    if(typeof p.hasRoad==='undefined') p.hasRoad=false;
+  });
+  return g;
+}
+
+function saveSession(code,name,idx){try{localStorage.setItem('natac_sess',JSON.stringify({code,name,idx}));}catch(e){}}
+function clearSession(){try{localStorage.removeItem('natac_sess');}catch(e){}}
+function loadSession(){try{return JSON.parse(localStorage.getItem('natac_sess')||'null');}catch(e){return null;}}
+
+async function goCreate(){
+  if(!ensureFB())return;
+  const name=document.getElementById('pname').value.trim();
+  if(!name){document.getElementById('err').textContent='Enter your name.';return;}
+  document.getElementById('err').textContent='';
+  const code=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*23)]).join('');
+  roomCode2=code;roomRef=db.ref(`rooms/${code}`);
+  await roomRef.set({status:'lobby',players:[{name,color:PCOLORS[0],avatar:_selAvatar}],state:null});
+  myIdx2=0; saveSession(code,name,0); showLobby();
+}
+async function goJoin(){
+  if(!ensureFB())return;
+  const name=document.getElementById('pname').value.trim(),code=document.getElementById('jcode').value.trim().toUpperCase();
+  if(!name||code.length!==4){document.getElementById('err').textContent='Enter name and 4-letter code.';return;}
+  document.getElementById('err').textContent='';
+  roomCode2=code;roomRef=db.ref(`rooms/${code}`);
+  const snap=await roomRef.once('value');
+  if(!snap.exists()){document.getElementById('err').textContent='Room not found.';return;}
+  const room=snap.val(),players=toArr(room.players);
+
+  if(room.status==='playing'){
+    // Allow reconnection if name matches an existing player
+    const existIdx=players.findIndex(p=>p.name.trim().toLowerCase()===name.toLowerCase());
+    if(existIdx>=0){
+      myIdx2=existIdx; saveSession(code,name,existIdx);
+      enterOnlineGame(room); return;
+    }
+    document.getElementById('err').textContent='Game in progress. Name not recognised for rejoin.';return;
+  }
+  if(players.length>=4){document.getElementById('err').textContent='Room full.';return;}
+  myIdx2=players.length; players.push({name,color:PCOLORS[myIdx2],avatar:_selAvatar});
+  await roomRef.child('players').set(players);
+  saveSession(code,name,myIdx2); showLobby();
+}
+function showLobby(){
+  document.getElementById('s-setup').classList.add('off');document.getElementById('s-lobby').classList.remove('off');
+  document.getElementById('lcode').textContent=roomCode2;
+  roomRef.on('value',snap=>{if(!snap.exists())return;const room=snap.val();
+    if(room.status==='playing'){roomRef.off();enterOnlineGame(room);return;}renderLobby(room);});
+}
+function renderLobby(room){
+  const players=toArr(room.players);
+  document.getElementById('lslots').innerHTML=players.map((p,i)=>
+    `<div class="lslot"><div class="ldot" style="background:${PCOLORS[i]}"></div>
+    <span class="lname">${p.name}</span>${i===myIdx2?'<span class="lyou">You</span>':''}</div>`).join('')
+    +Array.from({length:4-players.length},()=>`<div class="lslot" style="opacity:.3">
+    <div class="ldot" style="background:#444"></div><span class="lname" style="color:var(--muted)">Waiting<span class="wdots"></span></span></div>`).join('');
+  document.getElementById('lactns').innerHTML=myIdx2===0
+    ?`<button class="bg" onclick="startOnline()" ${players.length>=2?'':'disabled'} style="opacity:${players.length>=2?1:.4}">Start (${players.length} players)</button>`
+    :`<p style="color:var(--muted);font-size:.85em">Waiting for host<span class="wdots"></span></p>`;
+}
+async function startOnline(){
+  const snap=await roomRef.once('value'),room=snap.val(),players=toArr(room.players);
+  const state=buildStateFromPlayers(players.length,players);
+  await roomRef.update({status:'playing',state});
+}
+function buildStateFromPlayers(n,pDefs){
+  const hexes=makeBoard(),{vertices,edges}=makeGraph(hexes);makePorts(vertices);
+  const players=pDefs.map((pd,i)=>({id:i,name:pd.name,color:pd.color||PCOLORS[i],avatar:pd.avatar||AVATARS[i%AVATARS.length],
+    res:{wood:0,brick:0,sheep:0,wheat:0,ore:0},dev:[],knights:0,vp:0,
+    roads:0,settlements:0,cities:0,hasArmy:false,hasRoad:false,roadLen:0}));
+  const setupStart=Math.floor(Math.random()*n);
+  return serG({hexes,vertices,edges,players,n,
+    cur:setupStart,setupStart,
+    phase:'setup1',si:0,sa:'sett',
+    lastSett:null,turn:1,roll:null,rolled:false,deck:rnd([...DEV_DECK]),
+    robber:hexes.findIndex(h=>h.tile==='void'),bmode:null,devPlayed:false,
+    armyOwner:null,armySize:2,roadOwner:null,roadSize:4,freeRoads:0,yapLeft:0,log:[],
+    rollHistory:{2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0},
+    resEarned:players.map(()=>({wood:0,brick:0,sheep:0,wheat:0,ore:0})),
+    pendingTrade:null,pendingDiscards:[]
+  });
+}
+function enterOnlineGame(room){
+  document.getElementById('s-lobby').classList.add('off');
+  document.getElementById('game').style.display='flex';
+  myIdx=myIdx2; stateRef=roomRef.child('state');
+  _loopRunning=false; resetCam();
+  // Reset roll counters for fresh game or reconnect
+  _rollCounts={}; _lastKnownRoll=null; _winShown=false;
+  // Wire up atomic roll counter: each push() fires child_added exactly once per roll
+  if(_rollsRef){try{_rollsRef.off();}catch(e){}}
+  _rollsRef=roomRef.child('rolls');
+  _rollsRef.on('child_added',snap=>{
+    const v=snap.val();
+    if(typeof v==='number') _rollCounts[v]=(_rollCounts[v]||0)+1;
+  });
+
+  // State listener — called every time Firebase state changes
+  stateRef.on('value',snap=>{
+    if(!snap.exists())return;
+    let raw;
+    try{ raw=snap.val(); }catch(e){ console.warn('snap.val() failed:',e); return; }
+    try{ G=desG(raw); }catch(e){
+      // desG failed — try to use raw data directly with minimal safety wrapping
+      console.warn('desG failed, using raw:',e);
+      G=raw;
+      // At minimum, ensure critical arrays exist so updateUI doesn't crash
+      if(G){
+        (G.players||[]).forEach(p=>{if(!Array.isArray(p.dev))p.dev=[];});
+        if(!Array.isArray(G.log)) G.log=[];
+        if(!Array.isArray(G.deck)) G.deck=[];
+        if(!G.rollHistory||Array.isArray(G.rollHistory)) G.rollHistory={};
+      }
+    }
+    if(!G) return;
+    // Flash active hexes if a roll just happened (for players watching, not the roller)
+    if(G.roll&&G.roll!==_lastKnownRoll){
+      _lastKnownRoll=G.roll;
+      const active=G.hexes.filter(h=>h.number===G.roll&&!h.robber&&TILE_RES[h.tile]).map(h=>h.id);
+      if(active.length){_flashHexes=active;_flashStart=Date.now();}
+    }
+    scaleCanvas();
+    const el=document.getElementById('log');
+    if(el&&G.log)el.innerHTML=G.log.slice(0,12).map(m=>`<div>${m}</div>`).join('');
+    try{ updateUI(); }catch(e){ console.warn('updateUI failed:',e); }
+    // Always call checkWin — _winShown guard prevents double modal.
+    // Previously this was "if(G.phase!=='done')" which is exactly backwards:
+    // non-winning players receive phase='done' from Firebase and the condition
+    // evaluates false, so they never call postToLB and never appear on the leaderboard.
+    checkWin();
+    // Show discard modal if this player needs to discard
+    if(G.pendingDiscards&&G.pendingDiscards.length>0){
+      const mine=G.pendingDiscards[0];
+      const isMe=(myIdx!==null&&myIdx===mine.id)||(myIdx===null&&G.cur===mine.id);
+      if(isMe) showDiscardModal(mine.id,mine.discard);
+    }
+  });
+
+  canvas.onclick=e=>{if(_suppressNextClick){_suppressNextClick=false;return;}if(!_touchMoved)handleClick(e);};
+  addCanvasListeners();
+  startLoop();
+  setupChat(); // wire up Firebase chat listener
+  // Defer scaleCanvas until after browser has laid out the newly-visible flex container
+  requestAnimationFrame(()=>requestAnimationFrame(scaleCanvas));
+}
+// ════════════════════════════════════════════════════
+// CHAT SYSTEM
+// ════════════════════════════════════════════════════
+let chatRef=null, _chatOpen=false, _chatUnread=0, _chatMsgCount=0;
+let _localChat=[]; // for pass-and-play
+
+function toggleChat(){
+  _chatOpen=!_chatOpen;
+  document.getElementById('chat-panel').classList.toggle('open',_chatOpen);
+  document.getElementById('b-chat').classList.toggle('active',_chatOpen);
+  if(_chatOpen){
+    _chatUnread=0;
+    document.getElementById('chat-badge').className='cbadge';
+    // Focus input on desktop
+    setTimeout(()=>{const i=document.getElementById('chat-input');if(i&&window.innerWidth>680)i.focus();},280);
+    scrollChatToBottom();
+  }
+}
+
+function scrollChatToBottom(){
+  const el=document.getElementById('chat-msgs');
+  if(el) el.scrollTop=el.scrollHeight;
+}
+
+function renderChatMsgs(msgs){
+  const el=document.getElementById('chat-msgs');
+  if(!el) return;
+  el.innerHTML=msgs.map(m=>{
+    if(m.sys) return`<div class="cmsg sys">${escHtml(m.text)}</div>`;
+    return`<div class="cmsg"><span class="cn" style="color:${m.color||'var(--gold)'}">${m.avatar||''} ${escHtml(m.name)}:</span><span class="ct">${escHtml(m.text)}</span></div>`;
+  }).join('');
+  scrollChatToBottom();
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function sendChat(){
+  const input=document.getElementById('chat-input');
+  if(!input) return;
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';
+
+  // Determine sender info
+  const pid=myIdx!==null?myIdx:(G?G.cur:0);
+  const p=G?G.players[pid]:null;
+  const name=p?p.name:(myIdx2!==null&&myIdx2>=0?'Player':'You');
+  const color=p?p.color:(PCOLORS[pid]||'#c9a84c');
+
+  const msg={name,color,avatar:p?p.avatar:_selAvatar,text,ts:Date.now()};
+
+  // \x01 prefix marks this as a chat entry in glog (styled differently)
+  // The HTML is stored in G.log and synced to all players via Firebase state
+  const logEntry='\x01💬 <span style="font-weight:700;color:'+color+'">'+escHtml(name)+'</span>: '+escHtml(text);
+
+  if(chatRef){
+    // Online: push to Firebase chat panel history + add to game log for all players
+    chatRef.push(msg).catch(e=>console.warn('chat push failed',e));
+    sync(logEntry); // adds to G.log → fbPush → all players see it in their log
+  } else {
+    // Pass-and-play: local only
+    _localChat.push(msg);
+    if(_localChat.length>60) _localChat=_localChat.slice(-60);
+    renderChatMsgs(_localChat);
+    // Still show in game log locally
+    if(G) glog(logEntry);
+  }
+}
+
+function setupChat(){
+  if(!roomRef) return;
+  chatRef=roomRef.child('chat');
+  let _prevCount=0, _initialLoad=true;
+  chatRef.limitToLast(60).on('value',snap=>{
+    const msgs=[];
+    snap.forEach(ch=>msgs.push(ch.val()));
+    renderChatMsgs(msgs);
+    if(_initialLoad){ _prevCount=msgs.length; _initialLoad=false; return; }
+    // Only badge for genuinely new messages (count increased since last snapshot)
+    if(!_chatOpen&&msgs.length>_prevCount){
+      const newCount=msgs.length-_prevCount;
+      _chatUnread+=newCount;
+      const badge=document.getElementById('chat-badge');
+      if(badge){badge.textContent=_chatUnread>9?'9+':String(_chatUnread);badge.className='cbadge show';}
+    }
+    _prevCount=msgs.length;
+  });
+}
+
+// Init local chat for pass-and-play
+function setupLocalChat(){
+  _localChat=[{sys:true,text:'Game started! Chat is local only in Pass & Play.'}];
+  renderChatMsgs(_localChat);
+}
+
+// Clean up chat listener on exit
+function teardownChat(){
+  if(chatRef){try{chatRef.off();}catch(e){} chatRef=null;}
+  _chatOpen=false;_chatUnread=0;
+  document.getElementById('chat-panel')?.classList.remove('open');
+  document.getElementById('b-chat')?.classList.remove('active');
+  const badge=document.getElementById('chat-badge');
+  if(badge) badge.className='cbadge';
+}
+async function fbPush(){
+  if(!stateRef)return;
+  // Single atomic write — log is embedded in state already via serG(G)
+  try{ await stateRef.set(serG(G)); }catch(e){ console.warn('fbPush failed',e); }
+}
+function copyCode(){navigator.clipboard.writeText(roomCode2).catch(()=>{});const el=document.getElementById('lcode');el.textContent='Copied!';setTimeout(()=>el.textContent=roomCode2,1200);}
+</script>
+
+<!-- Dynamically load Firebase if configured -->
+<script>
+if(typeof USE_FB!=='undefined'&&USE_FB){
+  ['https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js','https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js']
+  .forEach(src=>{const s=document.createElement('script');s.src=src;document.head.appendChild(s);});
+}
+</script>
+</body>
+</html>
